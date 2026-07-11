@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Upload Progress — KittipanHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0c0c0e;--surface:#161618;--border:#38383a;--text:#fff;--text2:#c7c7cc;--text3:#a1a1a6;--accent:#007aff;--danger:#ff453a;--success:#30d158;--warn:#ff9f0a;--r:5px;--font:'IBM Plex Mono',monospace}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:24px;max-width:900px;margin:0 auto}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.sub{color:var(--text3);font-size:12px;margin-bottom:24px}
+.bar-wrap{background:var(--surface);border-radius:var(--r);height:24px;overflow:hidden;margin:12px 0;border:1px solid var(--border)}
+.bar-fill{background:var(--accent);height:100%;transition:width .3s ease;border-radius:var(--r)}
+.bar-text{font-size:12px;margin-top:2px;color:var(--text3)}
+.current-row{display:flex;gap:12px;align-items:center;margin:8px 0}
+.spd{color:var(--accent);font-weight:600}
+.btn{padding:8px 20px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;transition:all .15s}
+.btn:hover{border-color:var(--accent)}
+.btn-start{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-start:hover{background:#0056b3}
+.btn-stop{background:var(--danger);border-color:var(--danger);color:#fff}
+.btns{display:flex;gap:8px;margin:16px 0}
+section{margin:20px 0}
+h2{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)}
+th{color:var(--text3);font-weight:500}
+td{color:var(--text2)}
+.done{color:var(--success)}
+.fail{color:var(--danger)}
+.pending{color:var(--text3)}
+.uploading{color:var(--accent)}
+.refresh{font-size:11px;color:var(--text3);margin-top:8px}
+</style>
+</head>
+<body>
+<h1>KittipanHub — Upload Progress</h1>
+<div class="sub" id="sub"></div>
+<div class="btns">
+  <button class="btn btn-start" onclick="start()" id="btnStart">▶ Start Upload</button>
+  <button class="btn btn-stop" onclick="stop()" id="btnStop" style="display:none">⏹ Stop</button>
+</div>
+
+<div id="bars">
+  <div class="bar-wrap" id="overallWrap"><div class="bar-fill" id="overallBar" style="width:0"></div></div>
+  <div class="bar-text" id="overallText"></div>
+</div>
+<div id="current" style="display:none">
+  <h2>NOW UPLOADING</h2>
+  <div class="current-row"><span id="currName" style="font-weight:600"></span> <span class="spd" id="currSpd"></span></div>
+  <div class="bar-wrap"><div class="bar-fill" id="currBar" style="width:0"></div></div>
+  <div class="bar-text" id="currText"></div>
+</div>
+
+<section id="queueSec"><h2>QUEUE</h2><table><thead><tr><th>File</th><th>Size</th><th>Status</th></tr></thead><tbody id="queueBody"></tbody></table></section>
+<section id="doneSec" style="display:none"><h2>COMPLETED</h2><table><thead><tr><th>File</th><th>Size</th></tr></thead><tbody id="doneBody"></tbody></table></section>
+<section id="failSec" style="display:none"><h2>FAILED</h2><table><thead><tr><th>File</th><th>Error</th></tr></thead><tbody id="failBody"></tbody></table></section>
+
+<p class="refresh" id="refresh"></p>
+
+<script>
+var t;
+function fmt(x){if(x<1024)return x+' MB';return (x/1024).toFixed(1)+' GB'}
+function fmtSpd(x){if(x<1)return (x*1000).toFixed(0)+' KB/s';return x.toFixed(1)+' MB/s'}
+
+function poll(){
+  fetch('/api/status').then(function(r){return r.json()}).then(function(s){
+    document.getElementById('sub').textContent =
+      'Total: '+fmt(s.total_mb)+' | Done: '+s.completed.length+' | Queued: '+s.queue.filter(function(i){return i.status==='pending'}).length;
+    document.getElementById('refresh').textContent = 'Updated: '+new Date().toLocaleTimeString();
+    if(s.running) document.getElementById('refresh').textContent += ' · Polling every 2s';
+
+    // Overall bar
+    var total = s.completed.length + s.queue.length;
+    var done = s.completed.length;
+    var cur = s.current;
+    var curPct = cur ? cur.progress_pct || 0 : 0;
+    var ovPct = total ? (done / total * 100) + ((curPct / 100) * (1/total * 100)) : 0;
+    document.getElementById('overallBar').style.width = ovPct+'%';
+    document.getElementById('overallText').textContent = done+'/'+total+' files ('+ovPct.toFixed(1)+'%)';
+
+    // Current
+    if(cur){
+      document.getElementById('current').style.display='block';
+      document.getElementById('currName').textContent = cur.name;
+      document.getElementById('currBar').style.width = curPct+'%';
+      document.getElementById('currText').textContent = cur.uploaded_mb+' / '+cur.size_mb+' MB ('+curPct+'%)';
+      document.getElementById('currSpd').textContent = fmtSpd(cur.speed_mbps||0)+' · '+((cur.elapsed_s||0)/60).toFixed(0)+' min';
+    }else{ document.getElementById('current').style.display='none'; }
+
+    // Buttons
+    if(s.running){
+      document.getElementById('btnStart').style.display='none';
+      document.getElementById('btnStop').style.display='';
+    }else{
+      document.getElementById('btnStart').style.display='';
+      document.getElementById('btnStop').style.display='none';
+    }
+
+    // Queue list
+    var qBody = document.getElementById('queueBody');
+    qBody.innerHTML = s.queue.map(function(i){
+      var st = i.status==='uploading' ? '<span class="uploading">Uploading</span>' :
+               i.status==='paused' ? '<span class="pending">Paused</span>' :
+               '<span class="pending">Pending</span>';
+      return '<tr><td>'+esc(i.name)+(i.folder?' <span style="color:var(--text3)">'+esc(i.folder)+'</span>':'')+'</td><td>'+i.size_mb+' MB</td><td>'+st+'</td></tr>';
+    }).join('');
+
+    // Completed
+    if(s.completed.length){
+      document.getElementById('doneSec').style.display='block';
+      document.getElementById('doneBody').innerHTML = s.completed.map(function(i){
+        return '<tr><td><span class="done">'+esc(i.name)+'</span></td><td>'+i.size_mb+' MB</td></tr>';
+      }).join('');
+    }
+
+    // Failed
+    if(s.failed.length){
+      document.getElementById('failSec').style.display='block';
+      document.getElementById('failBody').innerHTML = s.failed.map(function(i){
+        return '<tr><td><span class="fail">'+esc(i.name)+'</span></td><td>'+esc(i.error)+'</td></tr>';
+      }).join('');
+    }
+  });
+  if(t) t=setTimeout(poll,2000);
+}
+
+function start(){
+  fetch('/api/start',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    if(d.ok) t=setTimeout(poll,2000);
+  });
+}
+function stop(){
+  fetch('/api/stop',{method:'POST'}).then(function(){t&&clearTimeout(t)});
+}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+
+poll();
+</script>
+</body>
+</html>

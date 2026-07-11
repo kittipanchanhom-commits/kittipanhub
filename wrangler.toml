@@ -1,0 +1,11 @@
+name = "kittipanhub-worker"
+main = "worker/index.js"
+compatibility_date = "2026-01-01"
+account_id = "ff540dacc16ae31f7ab9b99b6c282b74"
+
+[vars]
+DRIVE_FOLDER_ID = "1X4uZI_vzrqTJdBrj_p1FPgQscui7ZkNK"
+
+[[kv_namespaces]]
+binding = "TORRENT_CACHE"
+id = "9710910fa0354e95a7e803d8fe8bc8ac"

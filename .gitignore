@@ -1,0 +1,34 @@
+# Secrets
+.env
+.dev.vars
+
+# Google Drive cache
+.upload_cache.json
+.upload_status.json
+upload_log.txt
+
+# Generated
+.cache/
+__pycache__/
+node_modules/
+.wrangler/
+*.pyc
+
+# Temp
+.tunnel-url.txt
+*.tmp
+
+# Video files
+*.mp4
+*.mkv
+*.avi
+*.webm
+*.mov
+*.wmv
+*.flv
+*.m4v
+*.ts
+*.m2ts
+
+# Torrent metadata
+*.url

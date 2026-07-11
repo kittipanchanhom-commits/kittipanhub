@@ -1,0 +1,5 @@
+flask>=3.0
+google-api-python-client>=2.100
+google-auth>=2.25
+tqdm>=4.66
+python-dotenv>=1.0
