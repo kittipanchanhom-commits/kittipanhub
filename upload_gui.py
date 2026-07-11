@@ -3,6 +3,8 @@
 
 import os, json, re, threading, time, sys
 from pathlib import Path
+
+from googleapiclient.errors import HttpError
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -56,14 +58,28 @@ def _get_drive():
     return build('drive', 'v3', credentials=creds)
 
 
+def drive_execute(request, max_retries=3):
+    """Execute Drive API request with exponential backoff on rate limits."""
+    for attempt in range(max_retries + 1):
+        try:
+            return request.execute()
+        except HttpError as e:
+            if e.resp.status == 429 and attempt < max_retries:
+                wait = min(2 ** attempt, 8)
+                print(f'  Rate limited, retry in {wait}s...')
+                time.sleep(wait)
+                continue
+            raise
+
+
 def find_or_create_folder(service, name, parent_id):
     escaped = name.replace("'", "\\'")
     q = f"'{parent_id}' in parents and name='{escaped}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-    resp = service.files().list(q=q, fields='files(id)', pageSize=1).execute()
+    resp = drive_execute(service.files().list(q=q, fields='files(id)', pageSize=1))
     if resp.get('files'):
         return resp['files'][0]['id']
     meta = {'name': name, 'mimeType': 'application/vnd.google-apps.folder', 'parents': [parent_id]}
-    return service.files().create(body=meta, fields='id').execute()['id']
+    return drive_execute(service.files().create(body=meta, fields='id'))['id']
 
 
 # ── Upload Worker ──
@@ -132,7 +148,7 @@ def upload_worker():
                 return
 
             file_id = response['id']
-            service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}, fields='id').execute()
+            drive_execute(service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}, fields='id'))
 
             cache[item['rel_path']] = file_id
             CACHE_FILE.write_text(json.dumps(cache, indent=2))

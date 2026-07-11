@@ -1,8 +1,9 @@
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
-const MIN_SIZE = 50 * 1024 * 1024; // 50 MB
-const CACHE_TTL = 60; // seconds
+const MIN_SIZE = 50 * 1024 * 1024;
+const CACHE_TTL = 300; // 5 min — reduce Drive API calls
+const MAX_RETRIES = 3;
 
 // ── Helpers ──
 
@@ -10,6 +11,24 @@ function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
   });
+}
+
+async function driveFetch(url, token, retries = MAX_RETRIES) {
+  for (let i = 0; i <= retries; i++) {
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    if (res.status === 429) {
+      const wait = Math.min(1000 * Math.pow(2, i), 8000); // 1s, 2s, 4s, 8s max
+      console.warn(`Drive rate limited, waiting ${wait}ms (retry ${i + 1}/${retries})`);
+      await new Promise(r => setTimeout(r, wait));
+      continue;
+    }
+    if (!res.ok && res.status >= 500 && i < retries) {
+      await new Promise(r => setTimeout(r, 500));
+      continue;
+    }
+    return res;
+  }
+  throw new Error('Drive API unavailable after retries');
 }
 
 function b64url(buf) {
@@ -84,7 +103,7 @@ async function listFolder(token, parentId, folderName) {
     const q = `'${parentId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`;
     const params = new URLSearchParams({ q, fields: 'files(id,name,size),nextPageToken', pageSize: '1000' });
     if (pageToken) params.set('pageToken', pageToken);
-    const res = await fetch(`${DRIVE_API}?${params}`, { headers: { Authorization: 'Bearer ' + token } });
+    const res = await driveFetch(`${DRIVE_API}?${params}`, token);
     const data = await res.json();
     for (const f of (data.files || [])) {
       const sz = parseInt(f.size || '0', 10);
@@ -116,7 +135,7 @@ async function listAll(token, rootId) {
     const q = `'${rootId}' in parents and trashed=false`;
     const params = new URLSearchParams({ q, fields: 'files(id,name,size,mimeType),nextPageToken', pageSize: '1000', orderBy: 'name' });
     if (pageToken) params.set('pageToken', pageToken);
-    const res = await fetch(`${DRIVE_API}?${params}`, { headers: { Authorization: 'Bearer ' + token } });
+    const res = await driveFetch(`${DRIVE_API}?${params}`, token);
     const data = await res.json();
     for (const f of (data.files || [])) {
       if (f.mimeType === 'application/vnd.google-apps.folder') {

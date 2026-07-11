@@ -1,23 +1,20 @@
 #!/usr/bin/env python
 """Watch torrent folder for new video files and auto-upload to Google Drive."""
 
-import os
-import json
-import time
-import sys
+import os, json, time, sys
 from pathlib import Path
 
 from dotenv import load_dotenv
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+from googleapiclient.errors import HttpError
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 load_dotenv()
 
 DRIVE_FOLDER_ID = os.environ['DRIVE_FOLDER_ID']
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
 VIDEO_EXTENSIONS = {'.mp4', '.mkv', '.avi', '.webm', '.mov', '.wmv', '.flv', '.m4v', '.ts', '.m2ts'}
 MIN_SIZE_MB = 50
 MIN_SIZE_BYTES = MIN_SIZE_MB * 1024 * 1024
@@ -26,30 +23,31 @@ WATCH_DIR = str(Path(__file__).parent.resolve())
 
 
 def _get_drive():
-    key_raw = os.environ['GOOGLE_SA_KEY']
-    if '\\n' in key_raw:
-        key_raw = key_raw.replace('\\n', '\n')
-
-    info = {
-        'type': 'service_account',
-        'project_id': os.environ.get('GOOGLE_PROJECT_ID', 'yoga-worker'),
-        'private_key_id': '',
-        'private_key': key_raw,
-        'client_email': os.environ['GOOGLE_SA_EMAIL'],
-        'client_id': '',
-        'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-        'token_uri': 'https://oauth2.googleapis.com/token',
-        'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
-        'client_x509_cert_url': f"https://www.googleapis.com/robot/v1/metadata/x509/{os.environ['GOOGLE_SA_EMAIL']}",
-    }
-    creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+    creds = Credentials(
+        None,
+        refresh_token=os.environ['GOOGLE_REFRESH_TOKEN'],
+        token_uri='https://oauth2.googleapis.com/token',
+        client_id=os.environ['GOOGLE_CLIENT_ID'],
+        client_secret=os.environ['GOOGLE_CLIENT_SECRET'],
+    )
     return build('drive', 'v3', credentials=creds)
+
+
+def drive_execute(request, max_retries=3):
+    for attempt in range(max_retries + 1):
+        try:
+            return request.execute()
+        except HttpError as e:
+            if e.resp.status == 429 and attempt < max_retries:
+                time.sleep(min(2 ** attempt, 8))
+                continue
+            raise
 
 
 def find_or_create_folder(service, name, parent_id):
     escaped = name.replace("'", "\\'")
     q = f"'{parent_id}' in parents and name='{escaped}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-    resp = service.files().list(q=q, fields='files(id)', pageSize=1).execute()
+    resp = drive_execute(service.files().list(q=q, fields='files(id)', pageSize=1))
     files = resp.get('files', [])
     if files:
         return files[0]['id']
@@ -95,11 +93,11 @@ def upload_file(service, file_path, parent_id):
     file_id = response['id']
 
     # Make publicly accessible
-    service.permissions().create(
+    drive_execute(service.permissions().create(
         fileId=file_id,
         body={'type': 'anyone', 'role': 'reader'},
         fields='id',
-    ).execute()
+    ))
 
     print(f'      Done! file_id={file_id}')
     return file_id
