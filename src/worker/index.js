@@ -2,7 +2,7 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
 const MIN_SIZE = 50 * 1024 * 1024;
-const CACHE_TTL = 300; // 5 min — reduce Drive API calls
+const CACHE_TTL = 600; // 10 min — reduce Drive API calls
 const MAX_RETRIES = 3;
 
 // ── Helpers ──
@@ -127,37 +127,47 @@ async function listAll(token, rootId) {
     if (!pageToken) break;
   }
 
-  // 2. Batch-query all subfolder contents using Drive API "or" — ~15 folders per batch
+  // 2. Batch-query all subfolder contents in PARALLEL — ~15 folders per batch
   const BATCH = 15;
+  const batches = [];
   for (let i = 0; i < subFolders.length; i += BATCH) {
-    const batch = subFolders.slice(i, i + BATCH);
-    const conditions = batch.map(f => `'${f.id}' in parents`).join(' or ');
-    const q = `(${conditions}) and trashed=false and mimeType!='application/vnd.google-apps.folder'`;
-    let bpToken = null;
-    const folderMap = {}; batch.forEach(f => { folderMap[f.id] = f.name; });
-
-    while (true) {
-      const bp = new URLSearchParams({ q, fields: 'files(id,name,size,parents),nextPageToken', pageSize: '1000' });
-      if (bpToken) bp.set('pageToken', bpToken);
-      const r = await driveFetch(`${DRIVE_API}?${bp}`, token);
-      const d = await r.json();
-      for (const f of (d.files || [])) {
-        const sz = parseInt(f.size || '0', 10);
-        if (sz < MIN_SIZE) continue;
-        const parentId = (f.parents && f.parents[0]) || '';
-        const folderName = folderMap[parentId] || '';
-        const ext = (f.name || '').split('.').pop().toUpperCase() || '?';
-        videos.push({
-          name: (f.name || '').replace(/\.[^.]+$/, ''),
-          filename: f.name, file_id: f.id, folder: folderName,
-          size: fmtSize(sz), size_bytes: sz, has_thumbnail: true,
-          ext, category: detectCat(f.name, folderName),
-        });
-      }
-      bpToken = d.nextPageToken;
-      if (!bpToken) break;
-    }
+    batches.push(subFolders.slice(i, i + BATCH));
   }
+
+  const batchResults = await Promise.all(
+    batches.map(async (batch) => {
+      const conditions = batch.map(f => `'${f.id}' in parents`).join(' or ');
+      const q = `(${conditions}) and trashed=false and mimeType!='application/vnd.google-apps.folder'`;
+      const folderMap = {}; batch.forEach(f => { folderMap[f.id] = f.name; });
+      const fileList = [];
+      let bpToken = null;
+
+      while (true) {
+        const bp = new URLSearchParams({ q, fields: 'files(id,name,size,parents),nextPageToken', pageSize: '1000' });
+        if (bpToken) bp.set('pageToken', bpToken);
+        const r = await driveFetch(`${DRIVE_API}?${bp}`, token);
+        const d = await r.json();
+        for (const f of (d.files || [])) {
+          const sz = parseInt(f.size || '0', 10);
+          if (sz < MIN_SIZE) continue;
+          const parentId = (f.parents && f.parents[0]) || '';
+          const folderName = folderMap[parentId] || '';
+          const ext = (f.name || '').split('.').pop().toUpperCase() || '?';
+          fileList.push({
+            name: (f.name || '').replace(/\.[^.]+$/, ''),
+            filename: f.name, file_id: f.id, folder: folderName,
+            size: fmtSize(sz), size_bytes: sz, has_thumbnail: true,
+            ext, category: detectCat(f.name, folderName),
+          });
+        }
+        bpToken = d.nextPageToken;
+        if (!bpToken) break;
+      }
+      return fileList;
+    })
+  );
+
+  for (const files of batchResults) videos.push(...files);
 
   return videos;
 }
