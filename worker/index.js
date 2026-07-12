@@ -262,7 +262,30 @@ main{max-width:1280px;margin:0 auto;padding:24px}
 .player-footer .stream-url{flex:1;min-width:160px;padding:5px 8px;font-size:11px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-secondary);cursor:pointer;outline:none}
 .player-footer .stream-url:focus{border-color:var(--accent)}
 .player-footer .stream-label{color:var(--text-muted);white-space:nowrap}
-@media(max-width:640px){.grid{grid-template-columns:1fr;gap:12px}main{padding:16px}.header-inner{padding:0 16px}.sort-group{margin-left:0}}
+@media(max-width:640px){
+.grid{grid-template-columns:1fr;gap:12px}
+main{padding:12px}
+.header-inner{padding:0 12px;height:52px}
+.logo{font-size:14px}
+.video-count{display:none}
+.tool-bar{flex-direction:column;align-items:stretch;gap:8px}
+.tabs{gap:4px;justify-content:flex-start}
+.sort-group{margin-left:0;justify-content:flex-start}
+.tab,.sort-btn{padding:6px 10px;font-size:12px}
+.search-wrap{max-width:100%}
+.search-input-wrapper{max-width:100%}
+.search-bar{font-size:14px}
+.card-body{padding:10px 12px}
+.card-title{font-size:12px}
+.player-overlay{padding:0}
+.player-modal{border-radius:0;max-width:100%;height:100%;max-height:100%}
+.player-modal iframe{max-height:50vh}
+.player-footer{flex-direction:column;align-items:stretch;padding:8px 12px}
+.player-footer .stream-url{min-width:0;font-size:10px}
+.player-title{font-size:12px}
+.toast-container{left:8px;right:8px;bottom:8px}
+.toast{max-width:100%;font-size:12px}
+}
 </style></head>
 <body>
 <header><div class="header-inner"><span class="logo">KittipanHub</span><div class="header-actions"><span class="video-count" id="videoCount">Loading...</span><button class="btn" id="refreshBtn" title="Refresh">Refresh</button></div></div></header>
