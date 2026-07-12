@@ -156,12 +156,19 @@ async function listAll(token, rootId) {
     if (!pageToken) break;
   }
 
-  // List all subfolders in parallel
-  const subResults = await Promise.all(
-    subFolders.map(f => listFolder(token, f.id, f.name))
-  );
-  for (const sub of subResults) {
-    videos.push(...sub);
+  // List subfolders one-by-one (max ~48 to stay under 50 subrequest limit)
+  // Root(1) + Token(1) + Folders(N) must be < 50
+  const MAX_FOLDERS = 45;
+  let count = 0;
+  for (const folder of subFolders) {
+    if (count >= MAX_FOLDERS) break;
+    try {
+      const files = await listFolder(token, folder.id, folder.name);
+      videos.push(...files);
+      count++;
+    } catch (e) {
+      console.error('Folder error:', folder.name, e.message);
+    }
   }
 
   return videos;
