@@ -266,7 +266,7 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:32px 32p
 .stats-bar span{color:var(--accent-bright);font-weight:600}
 .grid{display:grid;grid-template-columns:repeat(var(--grid-cols,4),1fr);gap:28px}
 .card{position:relative;cursor:pointer;outline:none;transition:transform .2s ease,box-shadow .2s ease;animation:fadeUp .4s ease backwards}
-.card:hover{transform:translateY(-6px);z-index:2}
+.card:hover{transform:translateY(-6px)}
 .card:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:var(--radius)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 .card-thumb{width:100%;aspect-ratio:2/3;position:relative;overflow:hidden;border-radius:var(--radius);background:#141414;box-shadow:0 2px 12px rgba(0,0,0,.3)}
@@ -385,7 +385,7 @@ main{padding:16px 12px 100px}
 <div class="search-wrap"><div class="search-input-wrapper"><span class="search-icon">&#x1F50D;</span><input type="text" class="search-bar" id="search" placeholder="Search your library..." autocomplete="off" required><button class="search-clear" onclick="document.getElementById('search').value='';applyFilters()">Clear</button></div></div>
 <div class="stats-bar" id="statsBar"><span>--</span> files · <span>--</span> GB · Movies: <span>--</span> · Series: <span>--</span> · JAV: <span>--</span> · IG: <span>--</span></div>
 <div class="tool-bar"><div class="tabs" id="tabs"><button class="tab active" data-cat="all">All</button><button class="tab" data-cat="movie">Movies</button><button class="tab" data-cat="series">Series</button><button class="tab" data-cat="jav">JAV</button><button class="tab" data-cat="ig">IG</button></div><div class="sort-group" id="sortGroup"><span class="sort-label">Sort</span><button class="sort-btn active" data-sort="name">A-Z</button><button class="sort-btn" data-sort="newest">New</button><button class="sort-btn" data-sort="oldest">Old</button></div><div class="tool-actions"><button class="grid-btn active" onclick="setGrid(3)" id="g3">3</button><button class="grid-btn" onclick="setGrid(4)" id="g4">4</button><button class="grid-btn" onclick="setGrid(5)" id="g5">5</button><button class="btn" onclick="toggleFolders()" title="Folders">&#9776;</button></div></div>
-<div class="folder-bar collapsed" id="folderBar"></div>
+<div class="folder-bar" id="folderBar"></div>
 <div class="grid" id="grid"><div class="loading"><div class="spinner"></div><span style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em">Scanning videos...</span></div></div>
 </main>
 <div class="toast-container" id="toasts"></div>
