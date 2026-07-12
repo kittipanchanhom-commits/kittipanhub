@@ -1,6 +1,6 @@
 @echo off
 title KittipanHub
-cd /d "%~dp0"
+cd /d "%~dp0\.."
 
 :menu
 cls
@@ -19,8 +19,8 @@ echo.
 set /p choice="Choose [1-5]: "
 
 if "%choice%"=="1" start https://kittipanhub-worker.yogajourney.workers.dev & goto menu
-if "%choice%"=="2" start "Upload GUI" python upload_gui.py & start http://127.0.0.1:5001 & goto menu
-if "%choice%"=="3" start "Auto Upload Watcher" python auto_upload.py & goto menu
-if "%choice%"=="4" call deploy.bat & goto menu
+if "%choice%"=="2" start "Upload GUI" python src/upload_gui.py & start http://127.0.0.1:5001 & goto menu
+if "%choice%"=="3" start "Auto Upload Watcher" python src/auto_upload.py & goto menu
+if "%choice%"=="4" call scripts/deploy.bat & goto menu
 if "%choice%"=="5" exit /b
 goto menu

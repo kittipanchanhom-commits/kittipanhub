@@ -1,5 +1,5 @@
 name = "kittipanhub-worker"
-main = "worker/index.js"
+main = "src/worker/index.js"
 compatibility_date = "2026-01-01"
 account_id = "ff540dacc16ae31f7ab9b99b6c282b74"
 

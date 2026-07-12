@@ -19,7 +19,7 @@ VIDEO_EXTENSIONS = {'.mp4', '.mkv', '.avi', '.webm', '.mov', '.wmv', '.flv', '.m
 MIN_SIZE_MB = 50
 MIN_SIZE_BYTES = MIN_SIZE_MB * 1024 * 1024
 CHUNK_SIZE = 10 * 1024 * 1024  # 10 MB
-WATCH_DIR = str(Path(__file__).parent.resolve())
+WATCH_DIR = str(Path(__file__).parent.parent.resolve())
 
 
 def _get_drive():

@@ -20,7 +20,7 @@ DRIVE_FOLDER_ID = os.environ['DRIVE_FOLDER_ID']
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 VIDEO_EXT = {'.mp4','.mkv','.avi','.webm','.mov','.wmv','.flv','.m4v','.ts','.m2ts'}
 MIN_SIZE = 50 * 1024 * 1024
-WATCH_DIR = Path(__file__).parent.resolve()
+WATCH_DIR = Path(__file__).parent.parent.resolve()
 CACHE_FILE = WATCH_DIR / '.upload_cache.json'
 STATUS_FILE = WATCH_DIR / '.upload_status.json'
 
