@@ -258,6 +258,14 @@ main{max-width:1280px;margin:0 auto;padding:24px}
 .player-close:hover{color:var(--text)}
 .player-modal video{width:100%;display:block;background:#000;max-height:60vh}
 .player-modal iframe{width:100%;display:block;background:#000;max-height:60vh;border:none;aspect-ratio:16/9}
+.player-rotate{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;font-family:var(--font);padding:0 6px;line-height:1;transition:color .15s}
+.player-rotate:hover{color:var(--accent)}
+.player-rotate.active{color:var(--accent)}
+.player-video-wrap{position:relative;display:flex;align-items:center;justify-content:center;background:#000}
+.player-video-wrap.rot90 video{transform:rotate(90deg)}
+.player-video-wrap.rot180 video{transform:rotate(180deg)}
+.player-video-wrap.rot270 video{transform:rotate(270deg)}
+.player-video-wrap video{max-width:100%;max-height:60vh;transition:transform .3s ease}
 .player-footer{padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);font-size:12px}
 .player-footer .stream-url{flex:1;min-width:160px;padding:5px 8px;font-size:11px;font-family:var(--font);border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-secondary);cursor:pointer;outline:none}
 .player-footer .stream-url:focus{border-color:var(--accent)}
@@ -295,7 +303,7 @@ main{padding:12px}
 <div class="grid" id="grid"><div class="loading"><div class="spinner"></div><span>Scanning videos...</span></div></div>
 </main>
 <div class="toast-container" id="toasts"></div>
-<div class="player-overlay" id="playerOverlay" style="display:none" onclick="closePlayer(event)"><div class="player-modal" onclick="event.stopPropagation()"><div class="player-header"><span class="player-title" id="playerTitle"></span><button class="player-close" onclick="closePlayer()">&times;</button></div><iframe id="playerVideo" allowfullscreen></iframe><div class="player-footer"><span class="stream-label">Stream URL:</span><input class="stream-url" id="streamUrl" readonly onclick="this.select()" placeholder="Loading..." value=""></div></div></div>
+<div class="player-overlay" id="playerOverlay" style="display:none" onclick="closePlayer(event)"><div class="player-modal" onclick="event.stopPropagation()"><div class="player-header"><span class="player-title" id="playerTitle"></span><div><button class="player-rotate" id="playerRotate" onclick="rotatePlayer(event)" title="Rotate">&#8635;</button><button class="player-close" onclick="closePlayer()">&times;</button></div></div><div class="player-video-wrap" id="playerWrap"><video id="playerVideo" controls autoplay></video></div><div class="player-footer"><span class="stream-label">Stream URL:</span><input class="stream-url" id="streamUrl" readonly onclick="this.select()" placeholder="Loading..." value=""></div></div></div>
 <script>
 var API_TOKEN=(document.querySelector('meta[name="api-token"]')||{}).getAttribute('content')||'';
 var allVideos=[],activeCategory='all',sortBy='name';
@@ -306,8 +314,9 @@ function sortVideos(l){var s=l.slice();if(sortBy==='newest')s.sort(function(a,b)
 function catBadge(c){if(c==='jav')return'<span class="card-cat cat-jav">JAV</span>';if(c==='series')return'<span class="card-cat cat-series">SERIES</span>';if(c==='movie')return'<span class="card-cat cat-movie">MOVIE</span>';return''}
 function renderGrid(v){var g=document.getElementById('grid');if(!v.length){g.innerHTML='<div class=empty><p>No videos found</p></div>';return}
 g.innerHTML=v.map(function(x,i){var img='/api/thumbnail?id='+encodeURIComponent(x.file_id)+'&token='+encodeURIComponent(API_TOKEN);return'<div class=card data-id="'+esc(x.file_id)+'" data-name="'+esc(x.name)+'"><div class=card-thumb><img src="'+img+'" loading=lazy onerror="this.parentElement.innerHTML=\\'<div class=thumb-placeholder>&#9654;</div>\\'">'+catBadge(x.category)+'<div class=play-overlay><div class=play-btn>&#9654;</div></div></div><div class=card-body><div class=card-title title="'+esc(x.filename)+'">'+esc(x.name)+'</div><div class=card-meta><span class="meta-badge meta-ext">'+x.ext+'</span>'+(x.duration?'<span class=meta-badge>'+x.duration+'</span>':'')+'<span class=meta-badge>'+x.size+'</span></div>'+(x.folder?'<div class=card-folder>'+esc(x.folder)+'</div>':'')+'</div></div>'}).join('')}
-function openPlayer(id,name){var preview='https://drive.google.com/file/d/'+encodeURIComponent(id)+'/preview';var dl='https://drive.google.com/uc?export=download&id='+encodeURIComponent(id);document.getElementById('playerTitle').textContent=name;document.getElementById('playerVideo').src=preview;document.getElementById('streamUrl').value=dl;document.getElementById('playerOverlay').style.display='flex'}
-function closePlayer(e){if(e&&e.target!==e.currentTarget&&!e.target.closest('.player-close'))return;var v=document.getElementById('playerVideo');v.removeAttribute('src');document.getElementById('playerOverlay').style.display='none'}
+function openPlayer(id,name){var url='/api/video?id='+encodeURIComponent(id)+'&token='+encodeURIComponent(API_TOKEN);var dl='https://drive.google.com/uc?export=download&id='+encodeURIComponent(id);document.getElementById('playerTitle').textContent=name;document.getElementById('playerVideo').src=url;document.getElementById('streamUrl').value=dl;document.getElementById('playerOverlay').style.display='flex';document.getElementById('playerWrap').className='player-video-wrap';document.getElementById('playerRotate').className='player-rotate'}
+function closePlayer(e){if(e&&e.target!==e.currentTarget&&!e.target.closest('.player-close'))return;var v=document.getElementById('playerVideo');v.pause();v.removeAttribute('src');v.load();document.getElementById('playerOverlay').style.display='none'}
+var playerRot=0;function rotatePlayer(e){e.stopPropagation();playerRot=(playerRot+90)%360;var cls='player-video-wrap';if(playerRot===90)cls+=' rot90';else if(playerRot===180)cls+=' rot180';else if(playerRot===270)cls+=' rot270';document.getElementById('playerWrap').className=cls;document.getElementById('playerRotate').className='player-rotate'+(playerRot>0?' active':'')}
 document.getElementById('search').addEventListener('input',function(){applyFilters()});
 document.getElementById('tabs').addEventListener('click',function(e){var t=e.target.closest('.tab');if(!t)return;activeCategory=t.dataset.cat;document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('active',b===t)});applyFilters()});
 document.getElementById('sortGroup').addEventListener('click',function(e){var t=e.target.closest('.sort-btn');if(!t)return;sortBy=t.dataset.sort;document.querySelectorAll('.sort-btn').forEach(function(b){b.classList.toggle('active',b===t)});applyFilters()});
@@ -367,11 +376,29 @@ export default {
       }
     }
 
-    // API: video stream → return Drive preview URL
+    // API: video stream → proxy from Drive
     if (path === '/api/video') {
       const id = url.searchParams.get('id');
       if (!id) return json({ error: 'missing id' }, 400);
-      return json({ url: `https://drive.google.com/file/d/${id}/preview`, fileId: id });
+      try {
+        const saToken = await getAccessToken(env);
+        const driveRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
+          { headers: { Authorization: 'Bearer ' + saToken, Range: request.headers.get('Range') || '' } }
+        );
+        const headers = new Headers();
+        headers.set('Content-Type', driveRes.headers.get('Content-Type') || 'video/mp4');
+        headers.set('Accept-Ranges', 'bytes');
+        if (driveRes.status === 206) {
+          headers.set('Content-Range', driveRes.headers.get('Content-Range') || '');
+        }
+        return new Response(driveRes.body, {
+          status: driveRes.status,
+          headers,
+        });
+      } catch (e) {
+        return json({ error: 'Stream error: ' + e.message }, 500);
+      }
     }
 
     // API: thumbnail → redirect to Drive
