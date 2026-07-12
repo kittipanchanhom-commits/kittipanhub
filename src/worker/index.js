@@ -256,9 +256,9 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:32px 32p
 .sort-btn:hover,.grid-btn:hover{border-color:var(--accent);color:var(--text)}
 .sort-btn.active,.grid-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent-bright)}
 .sort-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;font-family:var(--mono);margin-right:4px}
-.folder-bar{padding:0 0 20px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;max-height:60px;overflow-y:auto;transition:max-height .25s}
+.folder-bar{padding:0 0 20px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;max-height:80px;overflow-y:auto;transition:max-height .25s,padding .25s;position:relative;z-index:10}
 .folder-bar.collapsed{max-height:0;padding:0;overflow:hidden}
-.folder-chip{padding:5px 12px;border:1.5px solid var(--border);font-size:10px;font-family:var(--mono);cursor:pointer;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;transition:all .15s;white-space:nowrap;border-radius:999px;min-height:32px;display:inline-flex;align-items:center;gap:4px;background:transparent}
+.folder-chip{padding:5px 12px;border:1.5px solid var(--border);font-size:10px;font-family:var(--mono);cursor:pointer;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;transition:all .15s;white-space:nowrap;border-radius:999px;min-height:32px;display:inline-flex;align-items:center;gap:4px;background:var(--surface)}
 .folder-chip:hover{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
 .folder-chip.active{background:var(--accent);border-color:var(--accent);color:#0a0a0a;font-weight:600}
 .folder-chip .count{opacity:.6;font-size:9px;font-weight:400}
@@ -274,7 +274,7 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:32px 32p
 .card:hover .card-thumb img{transform:scale(1.06)}
 .card-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(6,6,6,.95) 0%,rgba(6,6,6,.3) 40%,transparent 70%);pointer-events:none;transition:opacity .3s}
 .card:hover .card-thumb::after{background:linear-gradient(to top,rgba(6,6,6,.98) 0%,rgba(6,6,6,.5) 50%,transparent 75%)}
-.card-gloss{position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.06) 0%,transparent 50%,rgba(255,255,255,.02) 100%);opacity:0;transition:opacity .3s;z-index:1}
+.card-gloss{position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.04) 0%,transparent 50%,rgba(255,255,255,.01) 100%);opacity:0;transition:opacity .3s}
 .card:hover .card-gloss{opacity:1}
 .play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;transition:opacity .25s}
 .play-overlay::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.15);opacity:0;transition:opacity .25s}
@@ -285,7 +285,7 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:32px 32p
 .card:hover .queue-btn{opacity:1}
 .queue-btn:hover{border-color:var(--accent);color:var(--accent-bright);background:rgba(0,0,0,.85);transform:scale(1.1)}
 .queue-btn.in-queue{opacity:1;border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
-.card-info{position:absolute;bottom:0;left:0;right:0;z-index:3;padding:14px 12px 12px;pointer-events:none}
+.card-info{position:absolute;bottom:0;left:0;right:0;z-index:1;padding:14px 12px 12px;pointer-events:none}
 .card-title{font-size:14px;font-weight:600;line-height:1.25;color:#fff;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 4px rgba(0,0,0,.5)}
 .card-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .meta-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:500;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;font-family:var(--mono)}
@@ -427,7 +427,7 @@ var playerRot=0;function rotatePlayer(e){e.stopPropagation();playerRot=(playerRo
 
 function setGrid(n){gridCols=n;document.documentElement.style.setProperty('--grid-cols',n);document.querySelectorAll('.grid-btn').forEach(function(b){b.classList.toggle('active',parseInt(b.textContent)===n)});localStorage.setItem('kh_grid',n)}
 
-function toggleFolders(){document.getElementById('folderBar').classList.toggle('collapsed')}
+function toggleFolders(){document.getElementById('folderBar').classList.toggle('collapsed');document.querySelector('main').classList.toggle('folder-open')}
 
 // Keyboard nav
 var cardIndex=-1;var cards=[];
