@@ -2,7 +2,8 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
 const MIN_SIZE = 50 * 1024 * 1024;
-const CACHE_TTL = 600; // 10 min — reduce Drive API calls
+const CACHE_TTL = 600; // 10 min
+const CACHE_VERSION = 'v3'; // bump to invalidate old caches on deploy
 const MAX_RETRIES = 3;
 
 // ── Helpers ──
@@ -177,7 +178,8 @@ async function listAll(token, rootId, opts = {}) {
 }
 
 async function getVideos(env) {
-  const cached = await env.TORRENT_CACHE.get('video_list');
+  const ck = 'video_list_' + CACHE_VERSION;
+  const cached = await env.TORRENT_CACHE.get(ck);
   if (cached) return JSON.parse(cached);
   const token = await getAccessToken(env);
 
@@ -188,7 +190,7 @@ async function getVideos(env) {
   }
 
   const videos = [...torrentVids, ...igVids];
-  await env.TORRENT_CACHE.put('video_list', JSON.stringify(videos), { expirationTtl: CACHE_TTL });
+  await env.TORRENT_CACHE.put('video_list_' + CACHE_VERSION, JSON.stringify(videos), { expirationTtl: CACHE_TTL });
   return videos;
 }
 
@@ -394,9 +396,8 @@ export default {
     // API: list videos
     if (path === '/api/videos') {
       try {
-        const token = await getAccessToken(env);
-        const videos = await listAll(token, env.DRIVE_FOLDER_ID);
-        await env.TORRENT_CACHE.put('video_list', JSON.stringify(videos), { expirationTtl: CACHE_TTL });
+        const videos = await getVideos(env);
+        await env.TORRENT_CACHE.put('video_list_' + CACHE_VERSION, JSON.stringify(videos), { expirationTtl: CACHE_TTL });
         const counts = { total: videos.length, movie: 0, series: 0, jav: 0, ig: 0 };
         for (const v of videos) counts[v.category] = (counts[v.category] || 0) + 1;
         return json({ videos, count: videos.length, counts });
@@ -439,7 +440,7 @@ export default {
 
     // API: refresh cache
     if (path === '/api/refresh') {
-      await env.TORRENT_CACHE.delete('video_list');
+      await env.TORRENT_CACHE.delete('video_list_' + CACHE_VERSION);
       const videos = await getVideos(env);
       const counts = { total: videos.length, movie: 0, series: 0, jav: 0 };
       for (const v of videos) counts[v.category] = (counts[v.category] || 0) + 1;
