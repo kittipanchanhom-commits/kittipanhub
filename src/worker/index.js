@@ -96,41 +96,12 @@ function detectCat(name, folder) {
 
 // ── Drive Listing ──
 
-async function listFolder(token, parentId, folderName) {
-  const videos = [];
-  let pageToken = null;
-  while (true) {
-    const q = `'${parentId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`;
-    const params = new URLSearchParams({ q, fields: 'files(id,name,size),nextPageToken', pageSize: '1000' });
-    if (pageToken) params.set('pageToken', pageToken);
-    const res = await driveFetch(`${DRIVE_API}?${params}`, token);
-    const data = await res.json();
-    for (const f of (data.files || [])) {
-      const sz = parseInt(f.size || '0', 10);
-      if (sz < MIN_SIZE) continue;
-      const ext = (f.name || '').split('.').pop().toUpperCase() || '?';
-      videos.push({
-        name: (f.name || '').replace(/\.[^.]+$/, ''),
-        filename: f.name,
-        file_id: f.id,
-        folder: folderName,
-        size: fmtSize(sz),
-        size_bytes: sz,
-        has_thumbnail: true,
-        ext, category: detectCat(f.name, folderName),
-      });
-    }
-    pageToken = data.nextPageToken;
-    if (!pageToken) break;
-  }
-  return videos;
-}
-
 async function listAll(token, rootId) {
   const videos = [];
   const subFolders = [];
   let pageToken = null;
 
+  // 1. List root — get folders + root-level files
   while (true) {
     const q = `'${rootId}' in parents and trashed=false`;
     const params = new URLSearchParams({ q, fields: 'files(id,name,size,mimeType),nextPageToken', pageSize: '1000', orderBy: 'name' });
@@ -156,18 +127,35 @@ async function listAll(token, rootId) {
     if (!pageToken) break;
   }
 
-  // List subfolders one-by-one (max ~48 to stay under 50 subrequest limit)
-  // Root(1) + Token(1) + Folders(N) must be < 50
-  const MAX_FOLDERS = 45;
-  let count = 0;
-  for (const folder of subFolders) {
-    if (count >= MAX_FOLDERS) break;
-    try {
-      const files = await listFolder(token, folder.id, folder.name);
-      videos.push(...files);
-      count++;
-    } catch (e) {
-      console.error('Folder error:', folder.name, e.message);
+  // 2. Batch-query all subfolder contents using Drive API "or" — ~15 folders per batch
+  const BATCH = 15;
+  for (let i = 0; i < subFolders.length; i += BATCH) {
+    const batch = subFolders.slice(i, i + BATCH);
+    const conditions = batch.map(f => `'${f.id}' in parents`).join(' or ');
+    const q = `(${conditions}) and trashed=false and mimeType!='application/vnd.google-apps.folder'`;
+    let bpToken = null;
+    const folderMap = {}; batch.forEach(f => { folderMap[f.id] = f.name; });
+
+    while (true) {
+      const bp = new URLSearchParams({ q, fields: 'files(id,name,size,parents),nextPageToken', pageSize: '1000' });
+      if (bpToken) bp.set('pageToken', bpToken);
+      const r = await driveFetch(`${DRIVE_API}?${bp}`, token);
+      const d = await r.json();
+      for (const f of (d.files || [])) {
+        const sz = parseInt(f.size || '0', 10);
+        if (sz < MIN_SIZE) continue;
+        const parentId = (f.parents && f.parents[0]) || '';
+        const folderName = folderMap[parentId] || '';
+        const ext = (f.name || '').split('.').pop().toUpperCase() || '?';
+        videos.push({
+          name: (f.name || '').replace(/\.[^.]+$/, ''),
+          filename: f.name, file_id: f.id, folder: folderName,
+          size: fmtSize(sz), size_bytes: sz, has_thumbnail: true,
+          ext, category: detectCat(f.name, folderName),
+        });
+      }
+      bpToken = d.nextPageToken;
+      if (!bpToken) break;
     }
   }
 
