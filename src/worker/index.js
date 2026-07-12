@@ -96,10 +96,28 @@ function detectCat(name, folder) {
 
 // ── Drive Listing ──
 
-async function listAll(token, rootId) {
+async function listAll(token, rootId, opts = {}) {
+  const isIG = opts.isIG || false;
   const videos = [];
   const subFolders = [];
   let pageToken = null;
+
+  function buildEntry(f, folderName) {
+    const sz = parseInt(f.size || '0', 10);
+    if (!isIG && sz < MIN_SIZE) return null;
+    const ext = (f.name || '').split('.').pop().toUpperCase() || '?';
+    const mime = f.mimeType || '';
+    const mediaType = isIG
+      ? (mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : 'file')
+      : 'video';
+    return {
+      name: (f.name || '').replace(/\.[^.]+$/, ''),
+      filename: f.name, file_id: f.id, folder: folderName,
+      size: fmtSize(sz), size_bytes: sz, has_thumbnail: true,
+      ext, category: isIG ? 'ig' : detectCat(f.name, folderName),
+      mediaType, mimeType: mime,
+    };
+  }
 
   // 1. List root — get folders + root-level files
   while (true) {
@@ -112,15 +130,8 @@ async function listAll(token, rootId) {
       if (f.mimeType === 'application/vnd.google-apps.folder') {
         subFolders.push({ id: f.id, name: f.name });
       } else {
-        const sz = parseInt(f.size || '0', 10);
-        if (sz < MIN_SIZE) continue;
-        const ext = (f.name || '').split('.').pop().toUpperCase() || '?';
-        videos.push({
-          name: (f.name || '').replace(/\.[^.]+$/, ''),
-          filename: f.name, file_id: f.id, folder: '',
-          size: fmtSize(sz), size_bytes: sz, has_thumbnail: true,
-          ext, category: detectCat(f.name, ''),
-        });
+        const entry = buildEntry(f, '');
+        if (entry) videos.push(entry);
       }
     }
     pageToken = data.nextPageToken;
@@ -143,22 +154,15 @@ async function listAll(token, rootId) {
       let bpToken = null;
 
       while (true) {
-        const bp = new URLSearchParams({ q, fields: 'files(id,name,size,parents),nextPageToken', pageSize: '1000' });
+        const bp = new URLSearchParams({ q, fields: 'files(id,name,size,mimeType,parents),nextPageToken', pageSize: '1000' });
         if (bpToken) bp.set('pageToken', bpToken);
         const r = await driveFetch(`${DRIVE_API}?${bp}`, token);
         const d = await r.json();
         for (const f of (d.files || [])) {
-          const sz = parseInt(f.size || '0', 10);
-          if (sz < MIN_SIZE) continue;
           const parentId = (f.parents && f.parents[0]) || '';
           const folderName = folderMap[parentId] || '';
-          const ext = (f.name || '').split('.').pop().toUpperCase() || '?';
-          fileList.push({
-            name: (f.name || '').replace(/\.[^.]+$/, ''),
-            filename: f.name, file_id: f.id, folder: folderName,
-            size: fmtSize(sz), size_bytes: sz, has_thumbnail: true,
-            ext, category: detectCat(f.name, folderName),
-          });
+          const entry = buildEntry(f, folderName);
+          if (entry) fileList.push(entry);
         }
         bpToken = d.nextPageToken;
         if (!bpToken) break;
@@ -176,7 +180,14 @@ async function getVideos(env) {
   const cached = await env.TORRENT_CACHE.get('video_list');
   if (cached) return JSON.parse(cached);
   const token = await getAccessToken(env);
-  const videos = await listAll(token, env.DRIVE_FOLDER_ID);
+
+  const torrentVids = await listAll(token, env.DRIVE_FOLDER_ID);
+  let igVids = [];
+  if (env.IG_FOLDER_ID) {
+    igVids = await listAll(token, env.IG_FOLDER_ID, { isIG: true });
+  }
+
+  const videos = [...torrentVids, ...igVids];
   await env.TORRENT_CACHE.put('video_list', JSON.stringify(videos), { expirationTtl: CACHE_TTL });
   return videos;
 }
@@ -250,6 +261,7 @@ main{max-width:1280px;margin:0 auto;padding:24px 24px 100px}
 .cat-movie{background:rgba(0,0,0,.8);color:var(--accent);border:1px solid rgba(197,163,116,.2)}
 .cat-series{background:rgba(0,0,0,.8);color:#af52de;border:1px solid rgba(175,82,222,.2)}
 .cat-jav{background:rgba(0,0,0,.8);color:#ff375f;border:1px solid rgba(255,55,95,.2)}
+.cat-ig{background:rgba(0,0,0,.8);color:#e879f9;border:1px solid rgba(232,121,249,.2)}
 .loading,.empty{display:flex;align-items:center;justify-content:center;padding:100px 0;flex-direction:column;gap:16px;color:var(--text-muted)}
 .empty .icon{width:40px;height:40px;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:18px;margin-bottom:4px}
 .empty p{font-size:13px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.1em;font-family:var(--serif);font-style:italic}
@@ -270,6 +282,7 @@ main{max-width:1280px;margin:0 auto;padding:24px 24px 100px}
 .player-tag{font-size:8px;font-weight:700;padding:3px 8px;letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono);color:var(--accent);background:rgba(197,163,116,.1);border:1px solid rgba(197,163,116,.2);white-space:nowrap}
 .player-tag.jav-tag{color:#ff375f;background:rgba(255,55,95,.1);border:1px solid rgba(255,55,95,.2)}
 .player-tag.series-tag{color:#af52de;background:rgba(175,82,222,.1);border:1px solid rgba(175,82,222,.2)}
+.player-tag.ig-tag{color:#e879f9;background:rgba(232,121,249,.1);border:1px solid rgba(232,121,249,.2)}
 .player-title{font-size:13px;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase;letter-spacing:.05em}
 .player-header-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .player-rotate{background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:16px;font-family:var(--mono);padding:4px 8px;transition:color .2s;line-height:1}
@@ -282,6 +295,7 @@ main{max-width:1280px;margin:0 auto;padding:24px 24px 100px}
 .player-video-wrap.rot180 video{transform:rotate(180deg)}
 .player-video-wrap.rot270 video{transform:rotate(270deg)}
 .player-video-wrap video{width:100%;max-height:65vh;display:block;transition:transform .3s ease}
+#playerImage{width:100%;max-height:65vh;object-fit:contain;display:none}
 .player-footer{padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.05);font-size:10px;font-family:var(--mono)}
 .player-footer .stream-label{color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
 .player-footer .stream-url{flex:1;min-width:120px;padding:5px 8px;font-size:10px;font-family:var(--mono);border:1px solid rgba(255,255,255,.08);background:var(--surface);color:var(--text-secondary);cursor:pointer;outline:none;text-transform:none;letter-spacing:0}
@@ -312,11 +326,11 @@ main{padding:16px 16px 80px}
 <header><div class="header-inner"><span class="logo">TORRENT <em>browser</em></span><div class="header-actions"><span class="video-count" id="videoCount">Loading...</span><button class="btn" id="refreshBtn" title="Refresh">Refresh Swarm</button></div></div></header>
 <main>
 <div class="search-wrap"><div class="search-input-wrapper"><span class="search-icon">&#x1F50D;</span><input type="text" class="search-bar" id="search" placeholder="Search videos, tags, codes..." autocomplete="off" required><button class="search-clear" onclick="document.getElementById('search').value='';applyFilters()">Clear</button></div></div>
-<div class="tool-bar"><div class="tabs" id="tabs"><button class="tab active" data-cat="all">All</button><button class="tab" data-cat="movie">Movies</button><button class="tab" data-cat="series">Series</button><button class="tab" data-cat="jav">JAV</button></div><div class="sort-group" id="sortGroup"><span class="sort-label">Sort:</span><button class="sort-btn active" data-sort="name">A-Z</button><button class="sort-btn" data-sort="newest">Newest</button><button class="sort-btn" data-sort="oldest">Oldest</button></div></div>
+<div class="tool-bar"><div class="tabs" id="tabs"><button class="tab active" data-cat="all">All</button><button class="tab" data-cat="movie">Movies</button><button class="tab" data-cat="series">Series</button><button class="tab" data-cat="jav">JAV</button><button class="tab" data-cat="ig">IG</button></div><div class="sort-group" id="sortGroup"><span class="sort-label">Sort:</span><button class="sort-btn active" data-sort="name">A-Z</button><button class="sort-btn" data-sort="newest">Newest</button><button class="sort-btn" data-sort="oldest">Oldest</button></div></div>
 <div class="grid" id="grid"><div class="loading"><div class="spinner"></div><span style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em">Scanning videos...</span></div></div>
 </main>
 <div class="toast-container" id="toasts"></div>
-<div class="player-overlay" id="playerOverlay" style="display:none" onclick="closePlayer(event)"><div class="player-modal" onclick="event.stopPropagation()"><div class="player-header"><div class="player-header-left"><span class="player-tag" id="playerTag">MOVIE</span><span class="player-title" id="playerTitle"></span></div><div class="player-header-actions"><button class="player-rotate" id="playerRotate" onclick="rotatePlayer(event)" title="Rotate">&#8635;</button><button class="player-close" onclick="closePlayer()">&times;</button></div></div><div class="player-video-wrap" id="playerWrap"><video id="playerVideo" controls autoplay></video></div><div class="player-footer"><span class="stream-label">Stream URL</span><input class="stream-url" id="streamUrl" readonly onclick="this.select()" placeholder="Loading..." value=""></div></div></div>
+<div class="player-overlay" id="playerOverlay" style="display:none" onclick="closePlayer(event)"><div class="player-modal" onclick="event.stopPropagation()"><div class="player-header"><div class="player-header-left"><span class="player-tag" id="playerTag">MOVIE</span><span class="player-title" id="playerTitle"></span></div><div class="player-header-actions"><button class="player-rotate" id="playerRotate" onclick="rotatePlayer(event)" title="Rotate">&#8635;</button><button class="player-close" onclick="closePlayer()">&times;</button></div></div><div class="player-video-wrap" id="playerWrap"><video id="playerVideo" controls autoplay></video><img id="playerImage" style="display:none;width:100%;max-height:65vh;object-fit:contain" alt=""></div><div class="player-footer"><span class="stream-label">Stream URL</span><input class="stream-url" id="streamUrl" readonly onclick="this.select()" placeholder="Loading..." value=""></div></div></div>
 <footer>&copy; KITTIPANHUB · SECURE DIRECT STREAM CACHE</footer>
 <script>
 var API_TOKEN=(document.querySelector('meta[name="api-token"]')||{}).getAttribute('content')||'';
@@ -326,16 +340,16 @@ function fetchVideos(){fetch('/api/videos',{headers:{'X-API-Token':API_TOKEN}}).
 function buildTabs(c){document.getElementById('tabs').querySelectorAll('.tab').forEach(function(t){var cat=t.dataset.cat;t.textContent=cat.charAt(0).toUpperCase()+cat.slice(1)+(c[cat]!=null?' ('+c[cat]+')':'')})}
 function applyFilters(){var q=document.getElementById('search').value.toLowerCase().trim();var f=allVideos;if(activeCategory!=='all')f=f.filter(function(v){return v.category===activeCategory});if(q)f=f.filter(function(v){return v.name.toLowerCase().indexOf(q)!==-1||v.filename.toLowerCase().indexOf(q)!==-1||v.folder.toLowerCase().indexOf(q)!==-1});f=sortVideos(f);renderGrid(f)}
 function sortVideos(l){var s=l.slice();if(sortBy==='newest')s.sort(function(a,b){return b.mtime-a.mtime});else if(sortBy==='oldest')s.sort(function(a,b){return a.mtime-b.mtime});else s.sort(function(a,b){return a.name.localeCompare(b.name)});return s}
-function catBadge(c){if(c==='jav')return'<span class="card-cat cat-jav">JAV</span>';if(c==='series')return'<span class="card-cat cat-series">SERIES</span>';if(c==='movie')return'<span class="card-cat cat-movie">MOVIE</span>';return''}
+function catBadge(c){if(c==='jav')return'<span class="card-cat cat-jav">JAV</span>';if(c==='series')return'<span class="card-cat cat-series">SERIES</span>';if(c==='movie')return'<span class="card-cat cat-movie">MOVIE</span>';if(c==='ig')return'<span class="card-cat cat-ig">IG</span>';return''}
 function renderGrid(v){var g=document.getElementById('grid');if(!v.length){g.innerHTML='<div class=empty><div class=icon>&#x1F50D;</div><p>No videos found</p></div>';return}
-g.innerHTML=v.map(function(x,i){var img='/api/thumbnail?id='+encodeURIComponent(x.file_id)+'&token='+encodeURIComponent(API_TOKEN);return'<div class=card data-id="'+esc(x.file_id)+'" data-name="'+esc(x.name)+'" data-cat="'+x.category+'"><div class=card-thumb><img src="'+img+'" loading=lazy>'+catBadge(x.category)+'<div class=play-overlay><div class=play-btn>&#9654;</div></div></div><div class=card-body><div class=card-title title="'+esc(x.filename)+'">'+esc(x.name)+'</div><div class=card-meta><span class="meta-badge meta-ext">'+x.ext+'</span>'+(x.folder?'<span class="meta-dot">&middot;</span><span class=card-folder>'+esc(x.folder)+'</span>':'')+'<span class=meta-dot>&middot;</span><span class=meta-badge>'+x.size+'</span></div></div></div>'}).join('')}
-function openPlayer(id,name,cat){var url='/api/video?id='+encodeURIComponent(id)+'&token='+encodeURIComponent(API_TOKEN);var dl='https://drive.google.com/uc?export=download&id='+encodeURIComponent(id);document.getElementById('playerTitle').textContent=name;document.getElementById('playerVideo').src=url;document.getElementById('streamUrl').value=dl;var tag=document.getElementById('playerTag');tag.textContent=(cat||'movie').toUpperCase();tag.className='player-tag'+((cat==='jav'?' jav-tag':'')+(cat==='series'?' series-tag':''));document.getElementById('playerOverlay').style.display='flex';document.getElementById('playerWrap').className='player-video-wrap';document.getElementById('playerRotate').className='player-rotate'}
-function closePlayer(e){if(e&&e.target!==e.currentTarget&&!e.target.closest('.player-close'))return;var v=document.getElementById('playerVideo');v.pause();v.removeAttribute('src');v.load();document.getElementById('playerOverlay').style.display='none'}
+g.innerHTML=v.map(function(x,i){var isImg=x.mediaType==='image';var img='/api/thumbnail?id='+encodeURIComponent(x.file_id)+'&token='+encodeURIComponent(API_TOKEN);return'<div class=card data-id="'+esc(x.file_id)+'" data-name="'+esc(x.name)+'" data-cat="'+x.category+'" data-type="'+(x.mediaType||'video')+'"><div class=card-thumb><img src="'+img+'" loading=lazy>'+catBadge(x.category)+(isImg?'':'<div class=play-overlay><div class=play-btn>&#9654;</div></div>')+'</div><div class=card-body><div class=card-title title="'+esc(x.filename)+'">'+esc(x.name)+'</div><div class=card-meta><span class="meta-badge meta-ext">'+x.ext+'</span>'+(x.folder?'<span class="meta-dot">&middot;</span><span class=card-folder>'+esc(x.folder)+'</span>':'')+'<span class=meta-dot>&middot;</span><span class=meta-badge>'+x.size+'</span></div></div></div>'}).join('')}
+function openPlayer(id,name,cat,mediaType){var isImg=mediaType==='image';var vEl=document.getElementById('playerVideo');var iEl=document.getElementById('playerImage');var url='/api/video?id='+encodeURIComponent(id)+'&token='+encodeURIComponent(API_TOKEN);var dl='https://drive.google.com/uc?export=download&id='+encodeURIComponent(id);document.getElementById('playerTitle').textContent=name;document.getElementById('streamUrl').value=dl;if(isImg){vEl.style.display='none';vEl.removeAttribute('src');iEl.style.display='block';iEl.src=url}else{iEl.style.display='none';iEl.removeAttribute('src');vEl.style.display='block';vEl.src=url}var tag=document.getElementById('playerTag');tag.textContent=(cat||'movie').toUpperCase();tag.className='player-tag'+((cat==='jav'?' jav-tag':'')+(cat==='series'?' series-tag':'')+(cat==='ig'?' ig-tag':''));document.getElementById('playerRotate').style.display=isImg?'none':'';document.getElementById('playerOverlay').style.display='flex';document.getElementById('playerWrap').className='player-video-wrap';document.getElementById('playerRotate').className='player-rotate'}
+function closePlayer(e){if(e&&e.target!==e.currentTarget&&!e.target.closest('.player-close'))return;var v=document.getElementById('playerVideo');var i=document.getElementById('playerImage');v.pause();v.removeAttribute('src');v.load();v.style.display='block';i.removeAttribute('src');i.style.display='none';document.getElementById('playerOverlay').style.display='none';document.getElementById('playerRotate').style.display=''}
 var playerRot=0;function rotatePlayer(e){e.stopPropagation();playerRot=(playerRot+90)%360;var cls='player-video-wrap';if(playerRot===90)cls+=' rot90';else if(playerRot===180)cls+=' rot180';else if(playerRot===270)cls+=' rot270';document.getElementById('playerWrap').className=cls;document.getElementById('playerRotate').className='player-rotate'+(playerRot>0?' active':'')}
 document.getElementById('search').addEventListener('input',function(){applyFilters()});
 document.getElementById('tabs').addEventListener('click',function(e){var t=e.target.closest('.tab');if(!t)return;activeCategory=t.dataset.cat;document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('active',b===t)});applyFilters()});
 document.getElementById('sortGroup').addEventListener('click',function(e){var t=e.target.closest('.sort-btn');if(!t)return;sortBy=t.dataset.sort;document.querySelectorAll('.sort-btn').forEach(function(b){b.classList.toggle('active',b===t)});applyFilters()});
-document.getElementById('grid').addEventListener('click',function(e){var c=e.target.closest('.card');if(c)openPlayer(c.dataset.id,c.dataset.name,c.dataset.cat)});
+document.getElementById('grid').addEventListener('click',function(e){var c=e.target.closest('.card');if(c)openPlayer(c.dataset.id,c.dataset.name,c.dataset.cat,c.dataset.type)});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closePlayer(e)});
 document.getElementById('refreshBtn').addEventListener('click',function(){var g=document.getElementById('grid');g.innerHTML='<div class=loading><div class=spinner></div><span style=\"font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em\">Refreshing...</span></div>';fetch('/api/refresh',{method:'POST',headers:{'X-API-Token':API_TOKEN}}).then(function(r){return r.json()}).then(function(d){allVideos=d.videos;document.getElementById('videoCount').textContent=d.count+' videos';buildTabs(d.counts);applyFilters();toast('Swarm refreshed','success')}).catch(function(){g.innerHTML='<div class=empty><div class=icon>!</div><p>Refresh failed</p></div>'})});
 function toast(msg,type){var c=document.getElementById('toasts');var e=document.createElement('div');e.className='toast '+type;e.textContent=msg;c.appendChild(e);setTimeout(function(){e.classList.add('fade-out');setTimeout(function(){e.remove()},300)},2500)}
@@ -383,7 +397,7 @@ export default {
         const token = await getAccessToken(env);
         const videos = await listAll(token, env.DRIVE_FOLDER_ID);
         await env.TORRENT_CACHE.put('video_list', JSON.stringify(videos), { expirationTtl: CACHE_TTL });
-        const counts = { total: videos.length, movie: 0, series: 0, jav: 0 };
+        const counts = { total: videos.length, movie: 0, series: 0, jav: 0, ig: 0 };
         for (const v of videos) counts[v.category] = (counts[v.category] || 0) + 1;
         return json({ videos, count: videos.length, counts });
       } catch (e) {

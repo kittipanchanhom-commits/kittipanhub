@@ -5,6 +5,7 @@ account_id = "ff540dacc16ae31f7ab9b99b6c282b74"
 
 [vars]
 DRIVE_FOLDER_ID = "1X4uZI_vzrqTJdBrj_p1FPgQscui7ZkNK"
+IG_FOLDER_ID = "1cCKkbcXma3vhNFTggynpJurcpC9gBHC4"
 
 [[kv_namespaces]]
 binding = "TORRENT_CACHE"
