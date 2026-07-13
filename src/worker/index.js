@@ -505,69 +505,140 @@ const ADMIN_HTML = `<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,900;1,400&display=swap" rel="stylesheet">
 <style>*{margin:0;padding:0;box-sizing:border-box}
 body{background:#060606;color:#e4e4e7;font-family:Inter,sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
-header{padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
-header h1{font-family:Playfair Display,serif;font-size:16px;color:#fff;font-weight:900}
+header{padding:14px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
+header h1{font-family:Playfair Display,serif;font-size:15px;color:#fff;font-weight:900}
 header h1 em{font-style:italic;font-weight:400;color:#C5A374}
 header a{color:rgba(255,255,255,.4);font-size:10px;font-family:JetBrains Mono,monospace;text-transform:uppercase;letter-spacing:.1em;text-decoration:none}
 header a:hover{color:#C5A374}
-main{max-width:900px;margin:0 auto;padding:24px}
-.section{margin-bottom:28px}
-h2{font-family:JetBrains Mono,monospace;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.5);margin-bottom:12px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.stat-card{background:#0f0f0f;border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:16px}
-.stat-card .val{font-size:28px;font-weight:700;color:#fff;line-height:1.1}
-.stat-card .lbl{font-size:9px;font-family:JetBrains Mono,monospace;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);margin-top:4px}
-.token-tbl{width:100%;border-collapse:collapse;font-size:12px}
-.token-tbl th{text-align:left;padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);border-bottom:1px solid rgba(255,255,255,.06)}
-.token-tbl td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:JetBrains Mono,monospace;font-size:11px}
-.token-tbl .trunc{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.del-btn{background:none;border:none;color:#ff453a;cursor:pointer;font-size:11px;font-family:JetBrains Mono,monospace;padding:2px 6px;border-radius:3px;transition:all .15s}
+main{max-width:1000px;margin:0 auto;padding:20px}
+.section{margin-bottom:24px}
+h2{font-family:JetBrains Mono,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.45);margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,.04);padding-bottom:6px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat-card{background:#0f0f0f;border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:14px}
+.stat-card .val{font-size:22px;font-weight:700;color:#fff;line-height:1.1}
+.stat-card .lbl{font-size:9px;font-family:JetBrains Mono,monospace;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-top:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{text-align:left;padding:6px 8px;font-family:JetBrains Mono,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.25);border-bottom:1px solid rgba(255,255,255,.04)}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.02);font-family:JetBrains Mono,monospace;font-size:10px;word-break:break-all}
+.tbl .trunc{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.del-btn{background:none;border:none;color:#ff453a;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:3px;transition:all .15s;font-family:JetBrains Mono,monospace}
 .del-btn:hover{background:rgba(255,69,58,.15)}
-.btn{padding:8px 16px;border:1px solid rgba(255,255,255,.08);background:transparent;color:rgba(255,255,255,.6);font-family:JetBrains Mono,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;border-radius:4px;cursor:pointer;transition:all .15s;line-height:1}
+.btn{padding:6px 14px;border:1px solid rgba(255,255,255,.08);background:transparent;color:rgba(255,255,255,.5);font-family:JetBrains Mono,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;border-radius:4px;cursor:pointer;transition:all .15s;line-height:1}
 .btn:hover{border-color:#C5A374;color:#C5A374}
 .btn.primary{background:#C5A374;border-color:#C5A374;color:#000;font-weight:700}
 .btn.primary:hover{opacity:.85}
+.btn.danger{background:rgba(255,69,58,.12);border-color:rgba(255,69,58,.25);color:#ff453a}
+.btn.danger:hover{background:rgba(255,69,58,.2)}
+input,select{padding:6px 10px;background:#060606;border:1px solid rgba(255,255,255,.08);color:#fff;font-size:12px;font-family:Inter,sans-serif;border-radius:4px;outline:none;margin:4px 0;max-width:100%}
+input:focus{border-color:#C5A374}
+.flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.info-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.02)}
+.info-row .k{color:rgba(255,255,255,.3);font-family:JetBrains Mono,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em}
+.info-row .v{color:rgba(255,255,255,.7);font-family:JetBrains Mono,monospace;font-size:10px}
+.log-entry{display:flex;gap:8px;padding:4px 0;font-size:10px;font-family:JetBrains Mono,monospace;border-bottom:1px solid rgba(255,255,255,.02)}
+.log-entry .lt{color:rgba(255,255,255,.25);width:60px;flex-shrink:0}
+.log-entry .lp{color:#C5A374;width:70px;flex-shrink:0}
+.log-entry .lpath{color:rgba(255,255,255,.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder-item{padding:3px 0;font-size:11px;font-family:JetBrains Mono,monospace;color:rgba(255,255,255,.5);cursor:pointer;transition:color .15s}
+.folder-item:hover{color:#C5A374}
 .toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#0f0f0f;border:1px solid rgba(197,163,116,.2);font-size:11px;font-family:JetBrains Mono,monospace;border-radius:4px;color:#e4e4e7;animation:slideUp .25s ease;z-index:100}
 @keyframes slideUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
-@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}main{padding:16px}.token-tbl td{font-size:10px}}
+.tab-nav{display:flex;gap:0;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.tab-nav button{padding:6px 14px;border:none;background:transparent;color:rgba(255,255,255,.35);cursor:pointer;font-size:10px;font-family:JetBrains Mono,monospace;text-transform:uppercase;letter-spacing:.1em;transition:all .15s;border-bottom:2px solid transparent}
+.tab-nav button:hover{color:#fff}
+.tab-nav button.active{color:#C5A374;border-bottom-color:#C5A374}
+@media(max-width:640px){.stat-grid{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}main{padding:14px}.tbl td{font-size:9px}}
 </style></head>
 <body>
-<header><h1>Kittipan<em>Hub</em> <span style=font-family:JetBrains+Mono,monospace;font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;font-weight:400>Admin</span></h1><a href="/admin/logout" id=logoutLink>Logout</a></header>
+<header><h1>Kittipan<em>Hub</em> <span style=font-family:JetBrains+Mono,monospace;font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em;font-weight:400>Admin</span></h1><a href="/admin/logout" id=logoutLink>Logout</a></header>
 <main>
-<div class=section><h2>Library Stats</h2><div class=stats id=stats></div></div>
-<div class=section><h2>Token Whitelist</h2><div style=display:flex;gap:8px;margin-bottom:10px><button class="btn primary" onclick=genToken()>+ Generate</button></div><table class=token-tbl><thead><tr><th>Token</th><th></th></tr></thead><tbody id=tblBody></tbody></table></div>
-<div class=section><h2>Cache</h2><button class=btn onclick=clearCache()>Clear Cache</button></div>
+<div class="tab-nav" id=tabNav><button class=active onclick="switchTab('dash')">Dashboard</button><button onclick="switchTab('tokens')">Tokens</button><button onclick="switchTab('folders')">Folders</button><button onclick="switchTab('config')">Config</button><button onclick="switchTab('logs')">Logs</button></div>
+
+<div id=dashTab>
+<div class=section><h2>Library</h2><div class=stat-grid id=stats></div></div>
+<div class=section><h2>Storage</h2><div class=stat-grid id=quota><div class=stat-card><div class=val>--</div><div class=lbl>Loading...</div></div></div></div>
+</div>
+
+<div id=tokensTab style=display:none>
+<div class=section><h2>Whitelist</h2><div class=flex style=margin-bottom:8px><button class="btn primary" onclick=genToken()>+ Generate</button><button class=btn onclick=refreshWhitelist()>Sync API_TOKEN</button></div><table class=tbl><thead><tr><th>Token</th><th></th></tr></thead><tbody id=tblBody></tbody></table></div>
+<div class=section><h2>Token Test</h2><div class=flex><input type=text id=testToken placeholder="Paste token" style=flex:1><button class=btn onclick=testToken()>Test</button></div><div id=testResult style=font-size:11px;font-family:JetBrains+Mono,monospace;margin-top:6px></div></div>
+</div>
+
+<div id=foldersTab style=display:none>
+<div class=section><h2>Drive Browser</h2><div style=max-height:300px;overflow-y:auto id=folderList>Loading...</div></div>
+<div class=section><h2>Category Override</h2><div class=flex><input type=text id=ovrFileId placeholder="File ID"><select id=ovrCat><option value=movie>Movie</option><option value=series>Series</option><option value=jav>JAV</option><option value=ig>IG</option></select><button class=btn onclick=setOverride()>Set</button></div><div id=ovrList style=font-size:10px;font-family:JetBrains+Mono,monospace;margin-top:6px></div></div>
+</div>
+
+<div id=configTab style=display:none>
+<div class=section><h2>Password</h2><div class=flex><input type=password id=newPw placeholder="New password"><button class="btn primary" onclick=changePw()>Change</button></div></div>
+<div class=section><h2>Cache</h2><button class=btn onclick=clearCache()>Clear & Re-warm</button></div>
+<div class=section><h2>System</h2><div id=sysInfo style=max-width:400px></div></div>
+</div>
+
+<div id=logsTab style=display:none>
+<div class=section><h2>Access Log</h2><div id=accessLog style=max-height:200px;overflow-y:auto></div></div>
+<div class=section><h2>Watch History</h2><div id=watchLog style=max-height:200px;overflow-y:auto></div></div>
+</div>
 </main>
 <script>
-function toast(m){var e=document.createElement('div');e.className='toast';e.textContent=m;document.body.appendChild(e);setTimeout(function(){e.remove()},2000)}
+function toast(m){var e=document.createElement('div');e.className='toast';e.textContent=m;document.body.appendChild(e);setTimeout(function(){e.remove()},2500)}
+function switchTab(t){document.querySelectorAll('.tab-nav button').forEach(function(b){b.classList.toggle('active',b.textContent.toLowerCase().includes(t))});['dash','tokens','folders','config','logs'].forEach(function(n){document.getElementById(n+'Tab').style.display=n===t?'block':'none'})}
 
-function loadStats(){fetch('/api/admin/stats').then(function(r){if(r.status===403){window.location='/admin';return;}return r.json()}).then(function(d){document.getElementById('stats').innerHTML=''
-+ '<div class=stat-card><div class=val>'+d.count+'</div><div class=lbl>Files</div></div>'
-+ '<div class=stat-card><div class=val>'+d.total_gb+'</div><div class=lbl>GB</div></div>'
-+ '<div class=stat-card><div class=val>'+(d.counts.movie||0)+'</div><div class=lbl>Movies</div></div>'
-+ '<div class=stat-card><div class=val>'+(d.counts.series||0)+'</div><div class=lbl>Series</div></div>'
-+ '<div class=stat-card><div class=val>'+(d.counts.jav||0)+'</div><div class=lbl>JAV</div></div>'
-+ '<div class=stat-card><div class=val>'+(d.counts.ig||0)+'</div><div class=lbl>IG</div></div>'})}
+// Stats + Quota
+function loadStats(){fetch('/api/admin/stats').then(function(r){if(r.status===403){window.location='/admin';return}return r.json()}).then(function(d){document.getElementById('stats').innerHTML=
+'<div class=stat-card><div class=val>'+d.count+'</div><div class=lbl>Files</div></div>'+
+'<div class=stat-card><div class=val>'+d.total_gb+'</div><div class=lbl>GB</div></div>'+
+'<div class=stat-card><div class=val>'+(d.counts.movie||0)+'</div><div class=lbl>Movies</div></div>'+
+'<div class=stat-card><div class=val>'+(d.counts.series||0)+'</div><div class=lbl>Series</div></div>'+
+'<div class=stat-card><div class=val>'+(d.counts.jav||0)+'</div><div class=lbl>JAV</div></div>'+
+'<div class=stat-card><div class=val>'+(d.counts.ig||0)+'</div><div class=lbl>IG</div></div>'})}
 
-function loadTokens(){fetch('/api/admin/tokens').then(function(r){return r.json()}).then(function(d){var h='';d.tokens.forEach(function(t){var s=t.substring(0,20)+'...';h+='<tr><td class=trunc title="'+t+'">'+s+'</td><td style=text-align:right><button class=del-btn onclick=removeToken("'+t+'")>&times;</button></td></tr>'});document.getElementById('tblBody').innerHTML=h})}
+function loadQuota(){fetch('/api/admin/quota').then(function(r){return r.json()}).then(function(d){
+var used=(d.usage||0)/1073741824;var lim=(d.limit||1)/1073741824;var pct=Math.round(used/lim*100);
+document.getElementById('quota').innerHTML=
+'<div class=stat-card><div class=val>'+used.toFixed(1)+'</div><div class=lbl>Used GB</div></div>'+
+'<div class=stat-card><div class=val>'+lim.toFixed(0)+'</div><div class=lbl>Limit GB</div></div>'+
+'<div class=stat-card><div class=val>'+pct+'%</div><div class=lbl>Used</div></div>'+
+'<div class=stat-card><div class=val>'+(d.usageInDriveTrash?Math.round((d.usageInDriveTrash||0)/1073741824,1):'0')+'</div><div class=lbl>Trash GB</div></div>'})}
 
-function genToken(){fetch('/api/admin/tokens/gen',{method:'POST'}).then(function(r){return r.json()}).then(function(d){toast('New token: '+d.token);loadTokens()})}
+// Tokens
+function loadTokens(){fetch('/api/admin/tokens').then(function(r){return r.json()}).then(function(d){var h='';d.tokens.forEach(function(t){h+='<tr><td class=trunc title="'+t+'">'+t.substring(0,24)+'..</td><td style=text-align:right><button class=del-btn onclick=removeToken("'+t+'")>&times;</button></td></tr>'});document.getElementById('tblBody').innerHTML=h})}
+function genToken(){fetch('/api/admin/tokens/gen',{method:'POST'}).then(function(r){return r.json()}).then(function(d){toast('Token: '+d.token);loadTokens()})}
+function removeToken(t){fetch('/api/admin/tokens/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})}).then(function(){loadTokens();toast('Removed')})}
+function refreshWhitelist(){fetch('/api/admin/tokens/refresh',{method:'POST'}).then(function(r){return r.json()}).then(function(d){loadTokens();toast('Whitelist refreshed. '+d.tokens.length+' tokens')})}
+function testToken(){var t=document.getElementById('testToken').value;fetch('/api/admin/tokens/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})}).then(function(r){return r.json()}).then(function(d){document.getElementById('testResult').innerHTML='valid:'+d.valid+' whitelist:'+d.exists_in_whitelist+' default:'+d.is_default_token})}
 
-function removeToken(t){fetch('/api/admin/tokens/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})}).then(function(){loadTokens()})}
+// Config
+function changePw(){var p=document.getElementById('newPw').value;fetch('/api/admin/password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({new_password:p})}).then(function(r){return r.json()}).then(function(d){if(d.ok){toast('Password changed');document.getElementById('newPw').value=''}else{toast('Error: '+d.error)}})}
+function clearCache(){fetch('/api/admin/cache',{method:'POST'}).then(function(){loadStats();toast('Cache cleared + re-warmed')})}
 
-function clearCache(){fetch('/api/admin/cache',{method:'POST'}).then(function(r){return r.json()}).then(function(){toast('Cache cleared')})}
+// Folders
+function loadFolders(){fetch('/api/admin/folders').then(function(r){return r.json()}).then(function(d){var h='<div class=folder-item style=font-weight:600;color:#fff>Root ('+d.files.length+' files, '+d.folders.length+' folders)</div>';d.folders.forEach(function(f){h+='<div class=folder-item onclick="browseFolder('+"'"+f.id+"'"+')">'+f.name+'</div>'});document.getElementById('folderList').innerHTML=h})}
+function browseFolder(id){fetch('/api/admin/folders?id='+id).then(function(r){return r.json()}).then(function(d){var h='<div class=folder-item onclick=loadFolders() style=color:#C5A374>.. up</div>';d.folders.forEach(function(f){h+='<div class=folder-item onclick="browseFolder('+"'"+f.id+"'"+')">'+f.name+'</div>'});d.files.forEach(function(f){h+='<div class=log-entry><span class=lp>'+f.id.substring(0,8)+'</span><span class=lpath>'+f.name+'</span></div>'});document.getElementById('folderList').innerHTML=h})}
+
+// Category override
+function loadOverrides(){fetch('/api/admin/categories').then(function(r){return r.json()}).then(function(d){var h=Object.keys(d.overrides).length?'':'Empty';for(var k in d.overrides){h+='<div>'+k.substring(0,12)+'.. → '+d.overrides[k]+' <button class=del-btn onclick="clearOverride('+"'"+k+"'"+')">&times;</button></div>'}document.getElementById('ovrList').innerHTML=h})}
+function setOverride(){var id=document.getElementById('ovrFileId').value;var cat=document.getElementById('ovrCat').value;fetch('/api/admin/categories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({set:true,file_id:id,category:cat})}).then(function(){loadOverrides();toast('Override set')})}
+function clearOverride(id){fetch('/api/admin/categories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clear:true,file_id:id})}).then(function(){loadOverrides()})}
+
+// Logs
+function loadLogs(){fetch('/api/admin/log').then(function(r){return r.json()}).then(function(d){var h='';d.entries.forEach(function(e){h+='<div class=log-entry><span class=lt>'+new Date(e.t).toLocaleTimeString()+'</span><span class=lp>'+e.tok+'</span><span class=lpath>'+e.path+'</span></div>'});document.getElementById('accessLog').innerHTML=h||'No entries'})}
+function loadHistory(){fetch('/api/admin/history').then(function(r){return r.json()}).then(function(d){var h='';d.entries.forEach(function(e){h+='<div class=log-entry><span class=lt>'+new Date(e.t).toLocaleTimeString()+'</span><span class=lpath>'+e.file_id.substring(0,16)+'..</span></div>'});document.getElementById('watchLog').innerHTML=h||'No entries'})}
+
+// Sysinfo
+function loadSysInfo(){fetch('/api/admin/system').then(function(r){return r.json()}).then(function(d){var h='';for(var k in d){h+='<div class=info-row><span class=k>'+k+'</span><span class=v>'+d[k]+'</span></div>'}document.getElementById('sysInfo').innerHTML=h})}
 
 document.getElementById('logoutLink').addEventListener('click',function(e){e.preventDefault();fetch('/admin/logout').then(function(){window.location='/admin'})});
 
-loadStats();
-loadTokens();
+loadStats();loadQuota();loadTokens();loadFolders();loadOverrides();loadLogs();loadHistory();loadSysInfo();
 </script>
 </body></html>`;
 
 // ── Routes ──
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -581,6 +652,14 @@ export default {
           return json({ error: 'Unauthorized' }, 403);
         }
       }
+    }
+
+    // Access log middleware
+    async function logAccess(path, env, request) {
+      const token = request.headers.get('X-API-Token') || '';
+      const prefix = token.substring(0, 8) || 'anon';
+      const key = 'log_' + Date.now();
+      await env.TORRENT_CACHE.put(key, JSON.stringify({ path, t: Date.now(), tok: prefix }), { expirationTtl: 86400 * 7 });
     }
 
     // Serve UI
@@ -604,7 +683,12 @@ export default {
     // API: list videos
     if (path === '/api/videos') {
       try {
+        ctx.waitUntil(logAccess(path, env, request));
         const videos = await getVideos(env);
+        const overrides = JSON.parse(await env.TORRENT_CACHE.get('cat_overrides') || '{}');
+        for (const v of videos) {
+          if (overrides[v.file_id]) v.category = overrides[v.file_id];
+        }
         await env.TORRENT_CACHE.put('video_list_' + CACHE_VERSION, JSON.stringify(videos), { expirationTtl: CACHE_TTL });
         const counts = { total: videos.length, movie: 0, series: 0, jav: 0, ig: 0 };
         for (const v of videos) counts[v.category] = (counts[v.category] || 0) + 1;
@@ -618,6 +702,8 @@ export default {
     if (path === '/api/video') {
       const id = url.searchParams.get('id');
       if (!id) return json({ error: 'missing id' }, 400);
+      ctx.waitUntil(logAccess(path, env, request));
+      ctx.waitUntil(env.TORRENT_CACHE.put('watch_' + Date.now(), JSON.stringify({ file_id: id, t: Date.now() }), { expirationTtl: 86400 * 30 }));
       try {
         const saToken = await getAccessToken(env);
         const driveRes = await fetch(
@@ -669,14 +755,16 @@ export default {
 
     // ── Admin routes ──
 
-    async function checkAdmin(request, env) {
-      const s = request.headers.get('Cookie')?.match(/admin_sess=([^;]+)/)?.[1];
-      if (!s) return false;
-      return !!(await env.TORRENT_CACHE.get('admin_sess_' + s));
+    function getSid(r) {
+      var c = r.headers.get('Cookie');
+      if (!c) return null;
+      var m = c.match(/admin_sess=([^;]+)/);
+      return m ? m[1] : null;
     }
 
     if (path === '/admin') {
-      if (await checkAdmin(request, env)) {
+      var sid = getSid(request);
+      if (sid && await env.TORRENT_CACHE.get('admin_sess_' + sid)) {
         const html = ADMIN_HTML.replace('__API_TOKEN__', env.API_TOKEN || '');
         return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }
@@ -685,7 +773,9 @@ export default {
 
     if (path === '/admin/login' && request.method === 'POST') {
       const body = await request.json();
-      if (body.password === env.ADMIN_PASSWORD) {
+      const storedPw = await env.TORRENT_CACHE.get('admin_password');
+      const validPw = storedPw || env.ADMIN_PASSWORD;
+      if (body.password === validPw) {
         const sessId = crypto.randomUUID().replace(/-/g, '');
         await env.TORRENT_CACHE.put('admin_sess_' + sessId, '1', { expirationTtl: 86400 });
         const resp = json({ ok: true });
@@ -696,13 +786,13 @@ export default {
     }
 
     if (path === '/admin/logout') {
-      const sess = request.headers.get('Cookie')?.match(/admin_sess=([^;]+)/)?.[1];
+      var sess = getSid(request);
       if (sess) await env.TORRENT_CACHE.delete('admin_sess_' + sess);
       return new Response('Logged out', { headers: { 'Set-Cookie': 'admin_sess=; HttpOnly; Path=/; Max-Age=0' } });
     }
 
     if (path === '/api/admin/stats') {
-      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
       const videos = await getVideos(env);
       const counts = { total: videos.length, movie: 0, series: 0, jav: 0, ig: 0 };
       let totalGb = 0;
@@ -711,13 +801,13 @@ export default {
     }
 
     if (path === '/api/admin/tokens') {
-      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
       const wl = await getWhitelist(env);
       return json({ tokens: wl, count: wl.length });
     }
 
     if (path === '/api/admin/tokens/gen' && request.method === 'POST') {
-      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
       const t = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
       const wl = await getWhitelist(env); wl.push(t);
       await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(wl));
@@ -725,7 +815,7 @@ export default {
     }
 
     if (path === '/api/admin/tokens/remove' && request.method === 'POST') {
-      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
       const body = await request.json();
       let wl = await getWhitelist(env); wl = wl.filter(t => t !== body.token);
       await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(wl));
@@ -733,11 +823,121 @@ export default {
     }
 
     if (path === '/api/admin/cache' && request.method === 'POST') {
-      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
       await env.TORRENT_CACHE.delete('video_list_' + CACHE_VERSION);
       await getVideos(env);
       return json({ ok: true });
     }
+
+    // Admin: Drive quota
+    if (path === '/api/admin/quota') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      const token = await getAccessToken(env);
+      const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=storageQuota', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const data = await res.json();
+      return json(data.storageQuota || data);
+    }
+
+    // Admin: change password
+    if (path === '/api/admin/password' && request.method === 'POST') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      const body = await request.json();
+      if (!body.new_password || body.new_password.length < 4) return json({ error: 'Password too short' }, 400);
+      await env.TORRENT_CACHE.put('admin_password', body.new_password);
+      return json({ ok: true });
+    }
+
+    // Admin: refresh whitelist from API_TOKEN
+    if (path === '/api/admin/tokens/refresh' && request.method === 'POST') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      const wl = await getWhitelist(env);
+      if (!wl.includes(env.API_TOKEN)) { wl.push(env.API_TOKEN); await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(wl)); }
+      return json({ ok: true, tokens: wl });
+    }
+
+    // Admin: test token
+    if (path === '/api/admin/tokens/test' && request.method === 'POST') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      const body = await request.json();
+      const wl = await getWhitelist(env);
+      const valid = wl.includes(body.token) || body.token === env.API_TOKEN;
+      return json({ valid, exists_in_whitelist: wl.includes(body.token), is_default_token: body.token === env.API_TOKEN });
+    }
+
+    // Admin: system info
+    if (path === '/api/admin/system') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      return json({
+        cache_version: CACHE_VERSION,
+        cache_ttl_s: CACHE_TTL,
+        drive_folder: env.DRIVE_FOLDER_ID,
+        ig_folder: env.IG_FOLDER_ID || null,
+        has_kv: !!env.TORRENT_CACHE,
+      });
+    }
+
+    // Admin: folders browser
+    if (path === '/api/admin/folders') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      const token = await getAccessToken(env);
+      const rootId = url.searchParams.get('id') || env.DRIVE_FOLDER_ID;
+      const resp = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q='${rootId}'+in+parents+and+trashed=false&fields=files(id,name,size,mimeType)&pageSize=200&orderBy=name`,
+        { headers: { Authorization: 'Bearer ' + token } }
+      );
+      const data = await resp.json();
+      const folders = (data.files || []).filter(f => f.mimeType === 'application/vnd.google-apps.folder').map(f => ({ id: f.id, name: f.name }));
+      const files = (data.files || []).filter(f => f.mimeType !== 'application/vnd.google-apps.folder').map(f => ({
+        id: f.id, name: f.name, size: f.size, mimeType: f.mimeType,
+      }));
+      return json({ folders, files, current_id: rootId });
+    }
+
+    // Admin: category overrides
+    if (path === '/api/admin/categories') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      const overrides = JSON.parse(await env.TORRENT_CACHE.get('cat_overrides') || '{}');
+      if (request.method === 'POST') {
+        const body = await request.json();
+        if (body.set) { overrides[body.file_id] = body.category; }
+        if (body.clear && body.file_id) { delete overrides[body.file_id]; }
+        await env.TORRENT_CACHE.put('cat_overrides', JSON.stringify(overrides));
+      }
+      return json({ overrides, count: Object.keys(overrides).length });
+    }
+
+    // Admin: access log
+    if (path === '/api/admin/log') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      const limit = parseInt(url.searchParams.get('limit') || '50', 10);
+      const prefix = url.searchParams.get('prefix') || '';
+      const keys = await env.TORRENT_CACHE.list({ prefix: 'log_', limit });
+      const entries = [];
+      for (const k of keys.keys) {
+        const val = await env.TORRENT_CACHE.get(k.name);
+        if (val) entries.push(JSON.parse(val));
+      }
+      if (prefix) entries.filter(e => e.tok === prefix);
+      entries.sort((a, b) => b.t - a.t);
+      return json({ entries: entries.slice(0, limit), total: entries.length });
+    }
+
+    // Admin: watch history
+    if (path === '/api/admin/history') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+      const keys = await env.TORRENT_CACHE.list({ prefix: 'watch_', limit: 100 });
+      const entries = [];
+      for (const k of keys.keys) {
+        const val = await env.TORRENT_CACHE.get(k.name);
+        if (val) entries.push(JSON.parse(val));
+      }
+      entries.sort((a, b) => b.t - a.t);
+      return json({ entries: entries.slice(0, limit), total: entries.length });
+    }
+
 
     // CORS preflight
     if (request.method === 'OPTIONS') {
