@@ -376,6 +376,23 @@ main{padding:16px 12px 100px}
 .card-title{font-size:11px}
 .search-bar{font-size:14px}
 }
+
+.login-overlay{position:fixed;inset:0;z-index:900;background:rgba(6,6,6,.97);display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn .3s ease}
+.login-card{background:var(--surface);border:1px solid var(--accent-dim);padding:36px;border-radius:8px;width:380px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.6)}
+.login-card .brand{font-family:var(--serif);font-size:28px;font-weight:900;color:var(--text);margin-bottom:2px}
+.login-card .brand em{font-style:italic;font-weight:400;color:var(--accent)}
+.login-card .sub{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;font-family:var(--mono);margin-bottom:24px}
+.login-card label{display:block;font-size:9px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:6px;text-align:left}
+.login-card input{width:100%;padding:11px 14px;background:var(--bg);border:1.5px solid var(--border);color:var(--text);font-size:15px;font-family:var(--font);border-radius:4px;outline:none;transition:all .15s;box-sizing:border-box}
+.login-card input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.login-card input.error{border-color:var(--danger);box-shadow:0 0 0 3px rgba(255,69,58,.12);animation:shake .35s ease}
+.login-btn{width:100%;padding:11px;background:var(--accent);border:none;color:#000;font-size:11px;font-weight:700;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;border-radius:4px;cursor:pointer;transition:all .15s;margin-top:10px}
+.login-btn:hover{opacity:.85}
+.login-btn:active{transform:scale(.98)}
+.login-btn.loading{opacity:.6;pointer-events:none}
+.login-err{background:rgba(255,69,58,.08);border:1px solid rgba(255,69,58,.15);color:var(--danger);font-size:11px;font-family:var(--mono);padding:8px 12px;border-radius:4px;margin-top:12px;display:none}
+.login-card .hint{font-size:9px;color:var(--text-muted);margin-top:16px;font-family:var(--mono);letter-spacing:.05em}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 </style></head>
 <body>
 <a href="#main" class="skip-link">Skip to content</a>
@@ -391,11 +408,13 @@ main{padding:16px 12px 100px}
 <div class="toast-container" id="toasts"></div>
 <div class="queue-drawer" id="queueDrawer"><h3>Play Queue</h3><div id="queueList"></div></div>
 <div class="player-overlay" id="playerOverlay" style="display:none" onclick="closePlayer(event)"><div class="player-modal" onclick="event.stopPropagation()"><div class="player-header"><div class="player-header-left"><span class="player-tag" id="playerTag">MOVIE</span><span class="player-title" id="playerTitle"></span></div><div class="player-header-actions"><button class="player-rotate" id="playerRotate" onclick="rotatePlayer(event)" title="Rotate">&#8635;</button><button class="player-close" onclick="closePlayer()">&times;</button></div></div><div class="player-video-wrap" id="playerWrap"><video id="playerVideo" controls autoplay></video><img id="playerImage" style="display:none" alt=""></div><div class="player-footer"><span class="stream-label">DL</span><input class="stream-url" id="streamUrl" readonly onclick="this.select()" value=""><button class="btn" id="playerDownload" onclick="dl()">Download</button></div></div></div>
+<div class="login-overlay" id="loginOverlay" style="display:none"><div class="login-card"><div class="brand">Kittipan<em>Hub</em></div><div class="sub">Access Required</div><label for="loginPwd">Access Key</label><input type="password" id="loginPwd" placeholder="Enter your API token or password"><button class="login-btn" id="loginBtn" onclick="doLogin()">Enter</button><div class="login-err" id="loginErr">Invalid access key</div><div class="hint">Contact admin for access</div></div></div>
 <footer>&copy; KITTIPANHUB CINEMA ARCHIVE &middot; ALL RIGHTS RESERVED</footer>
 <script>
 var API_TOKEN=(document.querySelector('meta[name="api-token"]')||{}).getAttribute('content')||'';
 var allVideos=[],activeCategory='all',sortBy='name',activeFolder='',gridCols=3,queue=[],queueIndex=-1;
 
+function doLogin(){var b=document.getElementById('loginBtn');var p=document.getElementById('loginPwd').value;b.classList.add('loading');b.textContent='Verifying...';fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})}).then(function(r){if(!r.ok)throw Error();document.getElementById('loginErr').style.display='none';window.location.reload()}).catch(function(){document.getElementById('loginPwd').classList.add('error');document.getElementById('loginErr').style.display='block';b.classList.remove('loading');b.textContent='Enter'})}
 function showErr(m){document.getElementById('grid').innerHTML='<div class=empty><div class=icon>!</div><p>'+m+'</p></div>'}
 function buildStats(d){var t=0;allVideos.forEach(function(v){t+=v.size_bytes||0});var gb=Math.round(t/10737418240)/10;var h=document.getElementById('statsBar');h.innerHTML=escapeHtml(d.count)+' files &middot; '+gb+' GB &middot; Movies: '+escapeHtml(d.movie||0)+' &middot; Series: '+escapeHtml(d.series||0)+' &middot; JAV: '+escapeHtml(d.jav||0)+' &middot; IG: '+escapeHtml(d.ig||0)}
 
@@ -473,8 +492,9 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.ge
 function toast(msg,type){var c=document.getElementById('toasts');var e=document.createElement('div');e.className='toast '+type;e.textContent=msg;c.appendChild(e);setTimeout(function(){e.classList.add('fade-out');setTimeout(function(){e.remove()},300)},2000)}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-fetchVideos();
+if(API_TOKEN){fetchVideos()}else{document.getElementById('loginOverlay').style.display='flex'}
 renderQueue();
+document.getElementById('loginPwd').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();document.getElementById('loginErr').style.display='none';this.classList.remove('error')});
 </script>
 </body></html>`;
 
@@ -490,13 +510,41 @@ async function getWhitelist(env) {
 
 const ADMIN_LOGIN = `<!DOCTYPE html>
 <html lang="en" data-theme="dark">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Admin Login</title>
-<style>body{background:#060606;color:#e4e4e7;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}.card{background:#0f0f0f;border:1px solid rgba(197,163,116,.15);padding:32px;border-radius:8px;width:340px}h1{font-family:Playfair Display,serif;font-size:20px;color:#fff;margin:0 0 4px}h1 em{font-style:italic;font-weight:400;color:#C5A374}p{font-size:12px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;font-family:JetBrains Mono,monospace;margin:0 0 24px}input{width:100%;padding:10px 12px;background:#060606;border:1px solid rgba(255,255,255,.08);color:#fff;font-size:14px;font-family:Inter,sans-serif;border-radius:4px;outline:none;margin-bottom:12px;box-sizing:border-box}input:focus{border-color:#C5A374}button{width:100%;padding:10px;background:#C5A374;border:none;color:#000;font-size:12px;font-weight:600;font-family:JetBrains Mono,monospace;text-transform:uppercase;letter-spacing:.1em;border-radius:4px;cursor:pointer;transition:opacity .15s}button:hover{opacity:.85}.error{color:#ff453a;font-size:11px;text-align:center;margin-top:8px;display:none}
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Admin — KittipanHub</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,900;1,400&display=swap" rel="stylesheet">
+<style>*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:#060606;color:#e4e4e7;font-family:Inter,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 40% at 30% 20%,rgba(197,163,116,.06),transparent 70%),radial-gradient(ellipse 40% 50% at 70% 80%,rgba(197,163,116,.04),transparent 70%)}
+.login-card{position:relative;z-index:1;background:#0f0f0f;border:1px solid rgba(197,163,116,.12);padding:40px;border-radius:8px;width:360px;box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.brand{font-family:Playfair Display,serif;font-size:24px;font-weight:900;color:#fff;margin-bottom:2px;text-align:center}
+.brand em{font-style:italic;font-weight:400;color:#C5A374}
+.sub{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;font-family:JetBrains Mono,monospace;text-align:center;margin-bottom:28px}
+label{display:block;font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;font-family:JetBrains Mono,monospace;margin-bottom:6px}
+input{width:100%;padding:11px 14px;background:#060606;border:1px solid rgba(255,255,255,.08);color:#fff;font-size:15px;font-family:Inter,sans-serif;border-radius:4px;outline:none;transition:border-color .15s;box-sizing:border-box}
+input:focus{border-color:#C5A374;box-shadow:0 0 0 3px rgba(197,163,116,.1)}
+input.error{border-color:#ff453a;box-shadow:0 0 0 3px rgba(255,69,58,.1);animation:shake .35s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.btn{width:100%;padding:11px;background:#C5A374;border:none;color:#000;font-size:11px;font-weight:700;font-family:JetBrains Mono,monospace;text-transform:uppercase;letter-spacing:.12em;border-radius:4px;cursor:pointer;transition:all .15s;margin-top:8px}
+.btn:hover{opacity:.85}
+.btn:active{transform:scale(.98)}
+.btn.loading{opacity:.6;pointer-events:none}
+.err-box{background:rgba(255,69,58,.08);border:1px solid rgba(255,69,58,.15);color:#ff453a;font-size:11px;font-family:JetBrains Mono,monospace;padding:8px 12px;border-radius:4px;margin-top:12px;display:none;text-align:center}
+.hint{font-size:9px;color:rgba(255,255,255,.15);text-align:center;margin-top:16px;font-family:JetBrains Mono,monospace;letter-spacing:.05em}
 </style></head>
-<body><div class=card><h1>Kittipan<em>Hub</em></h1><p>Admin Access</p><input type=password id=pwd placeholder=Password><br><button onclick=login()>Enter</button><div class=error id=err>Wrong password</div></div>
+<body>
+<div class=login-card>
+<div class=brand>Kittipan<em>Hub</em></div>
+<div class=sub>Admin Access</div>
+<label for=pwd>Password</label>
+<input type=password id=pwd placeholder="Enter admin password" autofocus>
+<button class=btn id=loginBtn onclick=login()>Authenticate</button>
+<div class=err-box id=err>Invalid password</div>
+<div class=hint>&copy; KITTIPANHUB CINEMA ARCHIVE</div>
+</div>
 <script>
-async function login(){var r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('pwd').value})});if(!r.ok){document.getElementById('err').style.display='block';return}window.location='/admin'}
-document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')login()});
+var btn=document.getElementById('loginBtn');
+async function login(){btn.classList.add('loading');btn.textContent='Verifying...';var r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('pwd').value})});if(!r.ok){document.getElementById('err').style.display='block';document.getElementById('pwd').classList.add('error');btn.classList.remove('loading');btn.textContent='Authenticate';document.getElementById('pwd').focus();return}window.location='/admin'}
+document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')login();document.getElementById('err').style.display='none';this.classList.remove('error')});
 </script></body></html>`;
 
 const ADMIN_HTML = `<!DOCTYPE html>
@@ -662,12 +710,29 @@ export default {
       await env.TORRENT_CACHE.put(key, JSON.stringify({ path, t: Date.now(), tok: prefix }), { expirationTtl: 86400 * 7 });
     }
 
-    // Serve UI
+    // Serve UI — check session cookie, inject token if valid
     if (path === '/') {
-      const html = HTML.replace('__API_TOKEN__', env.API_TOKEN || '');
+      var sessToken = getSid(request, 'site_sess');
+      var validSess = sessToken ? await env.TORRENT_CACHE.get('site_sess_' + sessToken) : null;
+      var tokenToInject = validSess ? (env.API_TOKEN || '') : '';
+      var html = HTML.replace('__API_TOKEN__', tokenToInject);
       return new Response(html, {
         headers: { 'Content-Type': 'text/html; charset=utf-8', 'Access-Control-Allow-Origin': '*' },
       });
+    }
+
+    // Login
+    if (path === '/login' && request.method === 'POST') {
+      var body = await request.json();
+      var pw = body.password || '';
+      var whitelist = await getWhitelist(env);
+      var valid = whitelist.includes(pw) || pw === env.API_TOKEN;
+      if (!valid) return json({ error: 'Invalid key' }, 403);
+      var sessId = crypto.randomUUID().replace(/-/g, '');
+      await env.TORRENT_CACHE.put('site_sess_' + sessId, '1', { expirationTtl: 86400 });
+      var resp = json({ ok: true });
+      resp.headers.set('Set-Cookie', `site_sess=${sessId}; HttpOnly; Secure; Path=/; Max-Age=86400; SameSite=Strict`);
+      return resp;
     }
 
     // API: test Drive connection
@@ -755,10 +820,11 @@ export default {
 
     // ── Admin routes ──
 
-    function getSid(r) {
+    function getSid(r, prefix) {
       var c = r.headers.get('Cookie');
       if (!c) return null;
-      var m = c.match(/admin_sess=([^;]+)/);
+      var p = prefix || 'admin_sess';
+      var m = c.match(RegExp(p + '=([^;]+)'));
       return m ? m[1] : null;
     }
 
