@@ -478,6 +478,92 @@ renderQueue();
 </script>
 </body></html>`;
 
+// ── Admin HTML ──
+
+async function getWhitelist(env) {
+  const list = await env.TORRENT_CACHE.get('whitelist_tokens');
+  if (list) return JSON.parse(list);
+  const initial = [env.API_TOKEN];
+  await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(initial));
+  return initial;
+}
+
+const ADMIN_LOGIN = `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Admin Login</title>
+<style>body{background:#060606;color:#e4e4e7;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}.card{background:#0f0f0f;border:1px solid rgba(197,163,116,.15);padding:32px;border-radius:8px;width:340px}h1{font-family:Playfair Display,serif;font-size:20px;color:#fff;margin:0 0 4px}h1 em{font-style:italic;font-weight:400;color:#C5A374}p{font-size:12px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;font-family:JetBrains Mono,monospace;margin:0 0 24px}input{width:100%;padding:10px 12px;background:#060606;border:1px solid rgba(255,255,255,.08);color:#fff;font-size:14px;font-family:Inter,sans-serif;border-radius:4px;outline:none;margin-bottom:12px;box-sizing:border-box}input:focus{border-color:#C5A374}button{width:100%;padding:10px;background:#C5A374;border:none;color:#000;font-size:12px;font-weight:600;font-family:JetBrains Mono,monospace;text-transform:uppercase;letter-spacing:.1em;border-radius:4px;cursor:pointer;transition:opacity .15s}button:hover{opacity:.85}.error{color:#ff453a;font-size:11px;text-align:center;margin-top:8px;display:none}
+</style></head>
+<body><div class=card><h1>Kittipan<em>Hub</em></h1><p>Admin Access</p><input type=password id=pwd placeholder=Password><br><button onclick=login()>Enter</button><div class=error id=err>Wrong password</div></div>
+<script>
+async function login(){var r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('pwd').value})});if(!r.ok){document.getElementById('err').style.display='block';return}window.location='/admin'}
+document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')login()});
+</script></body></html>`;
+
+const ADMIN_HTML = `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Admin — KittipanHub</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,900;1,400&display=swap" rel="stylesheet">
+<style>*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060606;color:#e4e4e7;font-family:Inter,sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+header{padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
+header h1{font-family:Playfair Display,serif;font-size:16px;color:#fff;font-weight:900}
+header h1 em{font-style:italic;font-weight:400;color:#C5A374}
+header a{color:rgba(255,255,255,.4);font-size:10px;font-family:JetBrains Mono,monospace;text-transform:uppercase;letter-spacing:.1em;text-decoration:none}
+header a:hover{color:#C5A374}
+main{max-width:900px;margin:0 auto;padding:24px}
+.section{margin-bottom:28px}
+h2{font-family:JetBrains Mono,monospace;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.5);margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat-card{background:#0f0f0f;border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:16px}
+.stat-card .val{font-size:28px;font-weight:700;color:#fff;line-height:1.1}
+.stat-card .lbl{font-size:9px;font-family:JetBrains Mono,monospace;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);margin-top:4px}
+.token-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.token-tbl th{text-align:left;padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);border-bottom:1px solid rgba(255,255,255,.06)}
+.token-tbl td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:JetBrains Mono,monospace;font-size:11px}
+.token-tbl .trunc{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.del-btn{background:none;border:none;color:#ff453a;cursor:pointer;font-size:11px;font-family:JetBrains Mono,monospace;padding:2px 6px;border-radius:3px;transition:all .15s}
+.del-btn:hover{background:rgba(255,69,58,.15)}
+.btn{padding:8px 16px;border:1px solid rgba(255,255,255,.08);background:transparent;color:rgba(255,255,255,.6);font-family:JetBrains Mono,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;border-radius:4px;cursor:pointer;transition:all .15s;line-height:1}
+.btn:hover{border-color:#C5A374;color:#C5A374}
+.btn.primary{background:#C5A374;border-color:#C5A374;color:#000;font-weight:700}
+.btn.primary:hover{opacity:.85}
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#0f0f0f;border:1px solid rgba(197,163,116,.2);font-size:11px;font-family:JetBrains Mono,monospace;border-radius:4px;color:#e4e4e7;animation:slideUp .25s ease;z-index:100}
+@keyframes slideUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}main{padding:16px}.token-tbl td{font-size:10px}}
+</style></head>
+<body>
+<header><h1>Kittipan<em>Hub</em> <span style=font-family:JetBrains+Mono,monospace;font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;font-weight:400>Admin</span></h1><a href="/admin/logout" id=logoutLink>Logout</a></header>
+<main>
+<div class=section><h2>Library Stats</h2><div class=stats id=stats></div></div>
+<div class=section><h2>Token Whitelist</h2><div style=display:flex;gap:8px;margin-bottom:10px><button class="btn primary" onclick=genToken()>+ Generate</button></div><table class=token-tbl><thead><tr><th>Token</th><th></th></tr></thead><tbody id=tblBody></tbody></table></div>
+<div class=section><h2>Cache</h2><button class=btn onclick=clearCache()>Clear Cache</button></div>
+</main>
+<script>
+function toast(m){var e=document.createElement('div');e.className='toast';e.textContent=m;document.body.appendChild(e);setTimeout(function(){e.remove()},2000)}
+
+function loadStats(){fetch('/api/admin/stats').then(function(r){if(r.status===403){window.location='/admin';return;}return r.json()}).then(function(d){document.getElementById('stats').innerHTML=''
++ '<div class=stat-card><div class=val>'+d.count+'</div><div class=lbl>Files</div></div>'
++ '<div class=stat-card><div class=val>'+d.total_gb+'</div><div class=lbl>GB</div></div>'
++ '<div class=stat-card><div class=val>'+(d.counts.movie||0)+'</div><div class=lbl>Movies</div></div>'
++ '<div class=stat-card><div class=val>'+(d.counts.series||0)+'</div><div class=lbl>Series</div></div>'
++ '<div class=stat-card><div class=val>'+(d.counts.jav||0)+'</div><div class=lbl>JAV</div></div>'
++ '<div class=stat-card><div class=val>'+(d.counts.ig||0)+'</div><div class=lbl>IG</div></div>'})}
+
+function loadTokens(){fetch('/api/admin/tokens').then(function(r){return r.json()}).then(function(d){var h='';d.tokens.forEach(function(t){var s=t.substring(0,20)+'...';h+='<tr><td class=trunc title="'+t+'">'+s+'</td><td style=text-align:right><button class=del-btn onclick=removeToken("'+t+'")>&times;</button></td></tr>'});document.getElementById('tblBody').innerHTML=h})}
+
+function genToken(){fetch('/api/admin/tokens/gen',{method:'POST'}).then(function(r){return r.json()}).then(function(d){toast('New token: '+d.token);loadTokens()})}
+
+function removeToken(t){fetch('/api/admin/tokens/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})}).then(function(){loadTokens()})}
+
+function clearCache(){fetch('/api/admin/cache',{method:'POST'}).then(function(r){return r.json()}).then(function(){toast('Cache cleared')})}
+
+document.getElementById('logoutLink').addEventListener('click',function(e){e.preventDefault();fetch('/admin/logout').then(function(){window.location='/admin'})});
+
+loadStats();
+loadTokens();
+</script>
+</body></html>`;
+
 // ── Routes ──
 
 export default {
@@ -485,11 +571,15 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Token check for API routes
+    // Token check for API routes — check whitelist first, fallback to API_TOKEN
     if (path.startsWith('/api/')) {
-      const token = request.headers.get('X-API-Token') || url.searchParams.get('token');
-      if (token !== env.API_TOKEN) {
-        return json({ error: 'Unauthorized' }, 403);
+      if (!path.startsWith('/api/admin')) {
+        const reqToken = request.headers.get('X-API-Token') || url.searchParams.get('token');
+        if (!reqToken) return json({ error: 'Unauthorized' }, 403);
+        const allowed = await getWhitelist(env);
+        if (!allowed.includes(reqToken) && reqToken !== env.API_TOKEN) {
+          return json({ error: 'Unauthorized' }, 403);
+        }
       }
     }
 
@@ -575,6 +665,78 @@ export default {
         totalGb += (v.size_bytes || 0) / (1024 * 1024 * 1024);
       }
       return json({ count: videos.length, counts, total_gb: Math.round(totalGb * 10) / 10 });
+    }
+
+    // ── Admin routes ──
+
+    async function checkAdmin(request, env) {
+      const s = request.headers.get('Cookie')?.match(/admin_sess=([^;]+)/)?.[1];
+      if (!s) return false;
+      return !!(await env.TORRENT_CACHE.get('admin_sess_' + s));
+    }
+
+    if (path === '/admin') {
+      if (await checkAdmin(request, env)) {
+        const html = ADMIN_HTML.replace('__API_TOKEN__', env.API_TOKEN || '');
+        return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      }
+      return new Response(ADMIN_LOGIN, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    }
+
+    if (path === '/admin/login' && request.method === 'POST') {
+      const body = await request.json();
+      if (body.password === env.ADMIN_PASSWORD) {
+        const sessId = crypto.randomUUID().replace(/-/g, '');
+        await env.TORRENT_CACHE.put('admin_sess_' + sessId, '1', { expirationTtl: 86400 });
+        const resp = json({ ok: true });
+        resp.headers.set('Set-Cookie', `admin_sess=${sessId}; HttpOnly; Secure; Path=/; Max-Age=86400; SameSite=Strict`);
+        return resp;
+      }
+      return json({ error: 'Wrong password' }, 403);
+    }
+
+    if (path === '/admin/logout') {
+      const sess = request.headers.get('Cookie')?.match(/admin_sess=([^;]+)/)?.[1];
+      if (sess) await env.TORRENT_CACHE.delete('admin_sess_' + sess);
+      return new Response('Logged out', { headers: { 'Set-Cookie': 'admin_sess=; HttpOnly; Path=/; Max-Age=0' } });
+    }
+
+    if (path === '/api/admin/stats') {
+      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      const videos = await getVideos(env);
+      const counts = { total: videos.length, movie: 0, series: 0, jav: 0, ig: 0 };
+      let totalGb = 0;
+      for (const v of videos) { counts[v.category] = (counts[v.category] || 0) + 1; totalGb += (v.size_bytes || 0) / (1024 * 1024 * 1024); }
+      return json({ count: videos.length, counts, total_gb: Math.round(totalGb * 10) / 10 });
+    }
+
+    if (path === '/api/admin/tokens') {
+      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      const wl = await getWhitelist(env);
+      return json({ tokens: wl, count: wl.length });
+    }
+
+    if (path === '/api/admin/tokens/gen' && request.method === 'POST') {
+      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      const t = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+      const wl = await getWhitelist(env); wl.push(t);
+      await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(wl));
+      return json({ ok: true, token: t, tokens: wl });
+    }
+
+    if (path === '/api/admin/tokens/remove' && request.method === 'POST') {
+      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      const body = await request.json();
+      let wl = await getWhitelist(env); wl = wl.filter(t => t !== body.token);
+      await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(wl));
+      return json({ ok: true, tokens: wl });
+    }
+
+    if (path === '/api/admin/cache' && request.method === 'POST') {
+      if (!(await checkAdmin(request, env))) return json({ error: 'Unauthorized' }, 403);
+      await env.TORRENT_CACHE.delete('video_list_' + CACHE_VERSION);
+      await getVideos(env);
+      return json({ ok: true });
     }
 
     // CORS preflight
