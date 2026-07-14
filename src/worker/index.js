@@ -386,6 +386,10 @@ main{padding:16px 12px 100px}
 .login-card input{width:100%;padding:11px 14px;background:var(--bg);border:1.5px solid var(--border);color:var(--text);font-size:15px;font-family:var(--font);border-radius:4px;outline:none;transition:all .15s;box-sizing:border-box}
 .login-card input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
 .login-card input.error{border-color:var(--danger);box-shadow:0 0 0 3px rgba(255,69,58,.12);animation:shake .35s ease}
+.input-wrap{position:relative;display:flex;align-items:center}
+.input-wrap input{width:100%;padding-right:40px}
+.toggle-pwd{position:absolute;right:1px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:6px 8px;line-height:1;transition:color .15s}
+.toggle-pwd:hover{color:var(--accent)}
 .login-btn{width:100%;padding:11px;background:var(--accent);border:none;color:#000;font-size:11px;font-weight:700;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;border-radius:4px;cursor:pointer;transition:all .15s;margin-top:10px}
 .login-btn:hover{opacity:.85}
 .login-btn:active{transform:scale(.98)}
@@ -408,13 +412,13 @@ main{padding:16px 12px 100px}
 <div class="toast-container" id="toasts"></div>
 <div class="queue-drawer" id="queueDrawer"><h3>Play Queue</h3><div id="queueList"></div></div>
 <div class="player-overlay" id="playerOverlay" style="display:none" onclick="closePlayer(event)"><div class="player-modal" onclick="event.stopPropagation()"><div class="player-header"><div class="player-header-left"><span class="player-tag" id="playerTag">MOVIE</span><span class="player-title" id="playerTitle"></span></div><div class="player-header-actions"><button class="player-rotate" id="playerRotate" onclick="rotatePlayer(event)" title="Rotate">&#8635;</button><button class="player-close" onclick="closePlayer()">&times;</button></div></div><div class="player-video-wrap" id="playerWrap"><video id="playerVideo" controls autoplay></video><img id="playerImage" style="display:none" alt=""></div><div class="player-footer"><span class="stream-label">DL</span><input class="stream-url" id="streamUrl" readonly onclick="this.select()" value=""><button class="btn" id="playerDownload" onclick="dl()">Download</button></div></div></div>
-<div class="login-overlay" id="loginOverlay" style="display:none"><div class="login-card"><div class="brand">Kittipan<em>Hub</em></div><div class="sub">Access Required</div><label for="loginPwd">Access Key</label><input type="password" id="loginPwd" placeholder="Enter your API token or password"><button class="login-btn" id="loginBtn" onclick="doLogin()">Enter</button><div class="login-err" id="loginErr">Invalid access key</div><div class="hint">Contact admin for access</div></div></div>
+<div class="login-overlay" id="loginOverlay" style="display:none"><div class="login-card"><div class="brand">Kittipan<em>Hub</em></div><div class="sub">Sign In</div><label for="loginUser">Username</label><input type="text" id="loginUser" placeholder="Enter username" autofocus><label for="loginPwd">Password</label><div class="input-wrap"><input type="password" id="loginPwd" placeholder="Enter password"><button class="toggle-pwd" onclick="var i=document.getElementById('loginPwd');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'&#9673;':'&#9680;'">&#9673;</button></div><button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In</button><div class="login-err" id="loginErr">Invalid username or password</div><div class="hint">Contact admin for access</div></div></div>
 <footer>&copy; KITTIPANHUB CINEMA ARCHIVE &middot; ALL RIGHTS RESERVED</footer>
 <script>
 var API_TOKEN=(document.querySelector('meta[name="api-token"]')||{}).getAttribute('content')||'';
 var allVideos=[],activeCategory='all',sortBy='name',activeFolder='',gridCols=3,queue=[],queueIndex=-1;
 
-function doLogin(){var b=document.getElementById('loginBtn');var p=document.getElementById('loginPwd').value;b.classList.add('loading');b.textContent='Verifying...';fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})}).then(function(r){if(!r.ok)throw Error();document.getElementById('loginErr').style.display='none';window.location.reload()}).catch(function(){document.getElementById('loginPwd').classList.add('error');document.getElementById('loginErr').style.display='block';b.classList.remove('loading');b.textContent='Enter'})}
+function doLogin(){var b=document.getElementById('loginBtn');var u=document.getElementById('loginUser').value;var p=document.getElementById('loginPwd').value;b.classList.add('loading');b.textContent='Verifying...';fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})}).then(function(r){if(!r.ok)throw Error();document.getElementById('loginErr').style.display='none';window.location.reload()}).catch(function(){document.getElementById('loginPwd').classList.add('error');document.getElementById('loginErr').style.display='block';b.classList.remove('loading');b.textContent='Sign In'})}
 function showErr(m){document.getElementById('grid').innerHTML='<div class=empty><div class=icon>!</div><p>'+m+'</p></div>'}
 function buildStats(d){var t=0;allVideos.forEach(function(v){t+=v.size_bytes||0});var gb=Math.round(t/10737418240)/10;var h=document.getElementById('statsBar');h.innerHTML=escapeHtml(d.count)+' files &middot; '+gb+' GB &middot; Movies: '+escapeHtml(d.movie||0)+' &middot; Series: '+escapeHtml(d.series||0)+' &middot; JAV: '+escapeHtml(d.jav||0)+' &middot; IG: '+escapeHtml(d.ig||0)}
 
@@ -495,16 +499,33 @@ function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;
 if(API_TOKEN){fetchVideos()}else{document.getElementById('loginOverlay').style.display='flex'}
 renderQueue();
 document.getElementById('loginPwd').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();document.getElementById('loginErr').style.display='none';this.classList.remove('error')});
+document.getElementById('loginUser').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();document.getElementById('loginErr').style.display='none';});
 </script>
 </body></html>`;
 
 // ── Admin HTML ──
 
-async function getWhitelist(env) {
-  const list = await env.TORRENT_CACHE.get('whitelist_tokens');
-  if (list) return JSON.parse(list);
-  const initial = [env.API_TOKEN];
-  await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(initial));
+// ── Account helpers ──
+
+async function hashPassword(pw) {
+  const data = new TextEncoder().encode('kittipanhub:' + (pw || ''));
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
+}
+
+async function getAccounts(env) {
+  var raw = await env.TORRENT_CACHE.get('accounts');
+  if (raw) return JSON.parse(raw);
+  // First boot — create default account from API_TOKEN
+  var initial = {};
+  if (env.API_TOKEN) {
+    initial['admin'] = {
+      password_hash: await hashPassword(env.ADMIN_PASSWORD || '1234567890'),
+      api_token: env.API_TOKEN,
+      created: new Date().toISOString(),
+    };
+  }
+  await env.TORRENT_CACHE.put('accounts', JSON.stringify(initial));
   return initial;
 }
 
@@ -536,7 +557,7 @@ input.error{border-color:#ff453a;box-shadow:0 0 0 3px rgba(255,69,58,.1);animati
 <div class=brand>Kittipan<em>Hub</em></div>
 <div class=sub>Admin Access</div>
 <label for=pwd>Password</label>
-<input type=password id=pwd placeholder="Enter admin password" autofocus>
+<div style=position:relative><input type=password id=pwd placeholder="Enter admin password" autofocus><button onclick="var i=document.getElementById('pwd');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'&#9673;':'&#9680;'" style=position:absolute;right:1px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:16px;padding:6px 8px>&#9673;</button></div>
 <button class=btn id=loginBtn onclick=login()>Authenticate</button>
 <div class=err-box id=err>Invalid password</div>
 <div class=hint>&copy; KITTIPANHUB CINEMA ARCHIVE</div>
@@ -601,17 +622,17 @@ input:focus{border-color:#C5A374}
 <body>
 <header><h1>Kittipan<em>Hub</em> <span style=font-family:JetBrains+Mono,monospace;font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em;font-weight:400>Admin</span></h1><a href="/admin/logout" id=logoutLink>Logout</a></header>
 <main>
-<div class="tab-nav" id=tabNav><button class=active onclick="switchTab('dash')">Dashboard</button><button onclick="switchTab('tokens')">Tokens</button><button onclick="switchTab('folders')">Folders</button><button onclick="switchTab('config')">Config</button><button onclick="switchTab('logs')">Logs</button></div>
+<div class="tab-nav" id=tabNav><button class=active onclick="switchTab('dash')">Dashboard</button><button onclick="switchTab('accounts')">Accounts</button><button onclick="switchTab('folders')">Folders</button><button onclick="switchTab('config')">Config</button><button onclick="switchTab('logs')">Logs</button></div>
 
 <div id=dashTab>
 <div class=section><h2>Library</h2><div class=stat-grid id=stats></div></div>
 <div class=section><h2>Storage</h2><div class=stat-grid id=quota><div class=stat-card><div class=val>--</div><div class=lbl>Loading...</div></div></div></div>
 </div>
 
-<div id=tokensTab style=display:none>
-<div class=section><h2>Whitelist</h2><div class=flex style=margin-bottom:8px><button class="btn primary" onclick=genToken()>+ Generate</button><button class=btn onclick=refreshWhitelist()>Sync API_TOKEN</button></div><table class=tbl><thead><tr><th>Token</th><th></th></tr></thead><tbody id=tblBody></tbody></table></div>
-<div class=section><h2>Token Test</h2><div class=flex><input type=text id=testToken placeholder="Paste token" style=flex:1><button class=btn onclick=testToken()>Test</button></div><div id=testResult style=font-size:11px;font-family:JetBrains+Mono,monospace;margin-top:6px></div></div>
-</div>
+<div id=accountsTab style=display:none>
+<div class=section><h2>Accounts</h2><div class=flex style=margin-bottom:8px><button class="btn primary" onclick=createAccount()>+ Create Account</button></div><table class=tbl><thead><tr><th>Username</th><th>API Token</th><th></th></tr></thead><tbody id=acctBody></tbody></table></div>
+<div class=section><h2>Create Account</h2><div class=flex><input type=text id=newUser placeholder=Username style=flex:1><input type=password id=newPass placeholder=Password style=flex:1><button class="btn primary" onclick=createAccount()>Create</button></div></div>
+<div class=section><h2>Reset Password</h2><div class=flex><input type=text id=resetUser placeholder=Username style=flex:1><input type=password id=resetPass placeholder="New password" style=flex:1><button class=btn onclick=resetPassword()>Reset</button></div></div></div>
 
 <div id=foldersTab style=display:none>
 <div class=section><h2>Drive Browser</h2><div style=max-height:300px;overflow-y:auto id=folderList>Loading...</div></div>
@@ -631,7 +652,7 @@ input:focus{border-color:#C5A374}
 </main>
 <script>
 function toast(m){var e=document.createElement('div');e.className='toast';e.textContent=m;document.body.appendChild(e);setTimeout(function(){e.remove()},2500)}
-function switchTab(t){document.querySelectorAll('.tab-nav button').forEach(function(b){b.classList.toggle('active',b.textContent.toLowerCase().includes(t))});['dash','tokens','folders','config','logs'].forEach(function(n){document.getElementById(n+'Tab').style.display=n===t?'block':'none'})}
+function switchTab(t){document.querySelectorAll('.tab-nav button').forEach(function(b){b.classList.toggle('active',b.textContent.toLowerCase().includes(t.slice(0,3)))});['dash','accounts','folders','config','logs'].forEach(function(n){document.getElementById(n+'Tab').style.display=n===t?'block':'none'})}
 
 // Stats + Quota
 function loadStats(){fetch('/api/admin/stats').then(function(r){if(r.status===403){window.location='/admin';return}return r.json()}).then(function(d){document.getElementById('stats').innerHTML=
@@ -650,12 +671,12 @@ document.getElementById('quota').innerHTML=
 '<div class=stat-card><div class=val>'+pct+'%</div><div class=lbl>Used</div></div>'+
 '<div class=stat-card><div class=val>'+(d.usageInDriveTrash?Math.round((d.usageInDriveTrash||0)/1073741824,1):'0')+'</div><div class=lbl>Trash GB</div></div>'})}
 
-// Tokens
-function loadTokens(){fetch('/api/admin/tokens').then(function(r){return r.json()}).then(function(d){var h='';d.tokens.forEach(function(t){h+='<tr><td class=trunc title="'+t+'">'+t.substring(0,24)+'..</td><td style=text-align:right><button class=del-btn onclick=removeToken("'+t+'")>&times;</button></td></tr>'});document.getElementById('tblBody').innerHTML=h})}
-function genToken(){fetch('/api/admin/tokens/gen',{method:'POST'}).then(function(r){return r.json()}).then(function(d){toast('Token: '+d.token);loadTokens()})}
-function removeToken(t){fetch('/api/admin/tokens/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})}).then(function(){loadTokens();toast('Removed')})}
-function refreshWhitelist(){fetch('/api/admin/tokens/refresh',{method:'POST'}).then(function(r){return r.json()}).then(function(d){loadTokens();toast('Whitelist refreshed. '+d.tokens.length+' tokens')})}
-function testToken(){var t=document.getElementById('testToken').value;fetch('/api/admin/tokens/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})}).then(function(r){return r.json()}).then(function(d){document.getElementById('testResult').innerHTML='valid:'+d.valid+' whitelist:'+d.exists_in_whitelist+' default:'+d.is_default_token})}
+// Accounts
+function loadTokens(){fetch('/api/admin/accounts').then(function(r){return r.json()}).then(function(d){var h='';d.forEach(function(a){h+='<tr><td>'+a.username+'</td><td class=trunc title="'+a.api_token+'">'+a.api_token.substring(0,20)+'..</td><td style=text-align:right><button class=del-btn onclick=deleteAccount("'+a.username+'")>&times;</button></td></tr>'});document.getElementById('acctBody').innerHTML=h})}
+function genToken(){document.getElementById('accountsTab').style.display='block';document.getElementById('tokensTab')?.remove();}
+function createAccount(){var u=document.getElementById('newUser').value;var p=document.getElementById('newPass').value;fetch('/api/admin/accounts/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})}).then(function(r){if(!r.ok)return r.json().then(function(d){toast(d.error||'Failed');throw Error()});return r.json()}).then(function(d){toast('Account created: '+d.username);loadTokens();document.getElementById('newUser').value='';document.getElementById('newPass').value=''}).catch(function(){})}
+function deleteAccount(u){fetch('/api/admin/accounts/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u})}).then(function(){loadTokens();toast('Account deleted: '+u)})}
+function resetPassword(){var u=document.getElementById('resetUser').value;var p=document.getElementById('resetPass').value;fetch('/api/admin/accounts/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,new_password:p})}).then(function(r){if(!r.ok)return r.json().then(function(d){toast(d.error||'Failed');throw Error()});return r.json()}).then(function(){toast('Password reset for: '+u);document.getElementById('resetUser').value='';document.getElementById('resetPass').value=''}).catch(function(){})}
 
 // Config
 function changePw(){var p=document.getElementById('newPw').value;fetch('/api/admin/password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({new_password:p})}).then(function(r){return r.json()}).then(function(d){if(d.ok){toast('Password changed');document.getElementById('newPw').value=''}else{toast('Error: '+d.error)}})}
@@ -690,13 +711,15 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Token check for API routes — check whitelist first, fallback to API_TOKEN
+    // Token check for API routes — check against accounts
     if (path.startsWith('/api/')) {
       if (!path.startsWith('/api/admin')) {
         const reqToken = request.headers.get('X-API-Token') || url.searchParams.get('token');
         if (!reqToken) return json({ error: 'Unauthorized' }, 403);
-        const allowed = await getWhitelist(env);
-        if (!allowed.includes(reqToken) && reqToken !== env.API_TOKEN) {
+        const accounts = await getAccounts(env);
+        var valid = false;
+        for (var k in accounts) { if (accounts[k].api_token === reqToken) { valid = true; break; } }
+        if (!valid && reqToken !== env.API_TOKEN) {
           return json({ error: 'Unauthorized' }, 403);
         }
       }
@@ -721,16 +744,29 @@ export default {
       });
     }
 
-    // Login
+    // Login — username + password
     if (path === '/login' && request.method === 'POST') {
       var body = await request.json();
+      var uname = body.username || body.password || '';  // accept old 'password' field as fallback
       var pw = body.password || '';
-      var whitelist = await getWhitelist(env);
-      var valid = whitelist.includes(pw) || pw === env.API_TOKEN;
-      if (!valid) return json({ error: 'Invalid key' }, 403);
+      var accounts = await getAccounts(env);
+      var match = null;
+      for (var k in accounts) {
+        if (k === uname || accounts[k].api_token === (body.password || '')) {
+          var h = await hashPassword(pw);
+          if (h === accounts[k].password_hash) { match = { name: k, token: accounts[k].api_token }; break; }
+        }
+      }
+      if (!match && (uname === env.API_TOKEN || body.password === env.API_TOKEN)) {
+        // Fallback: direct API_TOKEN login creates session with token
+        var sessId2 = crypto.randomUUID().replace(/-/g, '');
+        await env.TORRENT_CACHE.put('site_sess_' + sessId2, '1', { expirationTtl: 86400 });
+        return json({ ok: true });
+      }
+      if (!match) return json({ error: 'Invalid credentials' }, 403);
       var sessId = crypto.randomUUID().replace(/-/g, '');
-      await env.TORRENT_CACHE.put('site_sess_' + sessId, '1', { expirationTtl: 86400 });
-      var resp = json({ ok: true });
+      await env.TORRENT_CACHE.put('site_sess_' + sessId, match.name, { expirationTtl: 86400 });
+      var resp = json({ ok: true, username: match.name });
       resp.headers.set('Set-Cookie', `site_sess=${sessId}; HttpOnly; Secure; Path=/; Max-Age=86400; SameSite=Strict`);
       return resp;
     }
@@ -866,26 +902,43 @@ export default {
       return json({ count: videos.length, counts, total_gb: Math.round(totalGb * 10) / 10 });
     }
 
-    if (path === '/api/admin/tokens') {
+    if (path === '/api/admin/accounts') {
       if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
-      const wl = await getWhitelist(env);
-      return json({ tokens: wl, count: wl.length });
+      var accounts = await getAccounts(env);
+      var safe = {};
+      for (var k in accounts) { safe[k] = { username: k, api_token: accounts[k].api_token, created: accounts[k].created }; }
+      return json(Object.values(safe));
     }
 
-    if (path === '/api/admin/tokens/gen' && request.method === 'POST') {
+    if (path === '/api/admin/accounts/create' && request.method === 'POST') {
       if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
-      const t = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-      const wl = await getWhitelist(env); wl.push(t);
-      await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(wl));
-      return json({ ok: true, token: t, tokens: wl });
+      var b = await request.json();
+      if (!b.username || !b.password) return json({ error: 'Username and password required' }, 400);
+      var accounts = await getAccounts(env);
+      if (accounts[b.username]) return json({ error: 'Username already exists' }, 400);
+      accounts[b.username] = { password_hash: await hashPassword(b.password), api_token: (env.API_TOKEN || '') + '-' + b.username, created: new Date().toISOString() };
+      await env.TORRENT_CACHE.put('accounts', JSON.stringify(accounts));
+      return json({ ok: true, username: b.username, api_token: accounts[b.username].api_token });
     }
 
-    if (path === '/api/admin/tokens/remove' && request.method === 'POST') {
+    if (path === '/api/admin/accounts/delete' && request.method === 'POST') {
       if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
-      const body = await request.json();
-      let wl = await getWhitelist(env); wl = wl.filter(t => t !== body.token);
-      await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(wl));
-      return json({ ok: true, tokens: wl });
+      var b = await request.json();
+      var accounts = await getAccounts(env);
+      delete accounts[b.username];
+      await env.TORRENT_CACHE.put('accounts', JSON.stringify(accounts));
+      return json({ ok: true });
+    }
+
+    if (path === '/api/admin/accounts/reset' && request.method === 'POST') {
+      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
+      var b = await request.json();
+      if (!b.new_password) return json({ error: 'New password required' }, 400);
+      var accounts = await getAccounts(env);
+      if (!accounts[b.username]) return json({ error: 'Account not found' }, 404);
+      accounts[b.username].password_hash = await hashPassword(b.new_password);
+      await env.TORRENT_CACHE.put('accounts', JSON.stringify(accounts));
+      return json({ ok: true });
     }
 
     if (path === '/api/admin/cache' && request.method === 'POST') {
@@ -915,21 +968,9 @@ export default {
       return json({ ok: true });
     }
 
-    // Admin: refresh whitelist from API_TOKEN
-    if (path === '/api/admin/tokens/refresh' && request.method === 'POST') {
-      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
-      const wl = await getWhitelist(env);
-      if (!wl.includes(env.API_TOKEN)) { wl.push(env.API_TOKEN); await env.TORRENT_CACHE.put('whitelist_tokens', JSON.stringify(wl)); }
-      return json({ ok: true, tokens: wl });
-    }
-
-    // Admin: test token
-    if (path === '/api/admin/tokens/test' && request.method === 'POST') {
-      if (!(getSid(request) && await env.TORRENT_CACHE.get('admin_sess_' + getSid(request)))) return json({ error: 'Unauthorized' }, 403);
-      const body = await request.json();
-      const wl = await getWhitelist(env);
-      const valid = wl.includes(body.token) || body.token === env.API_TOKEN;
-      return json({ valid, exists_in_whitelist: wl.includes(body.token), is_default_token: body.token === env.API_TOKEN });
+    // Admin: account login compatibility (deprecated)
+    if (path === '/api/admin/tokens/refresh' || path === '/api/admin/tokens/test') {
+      return json({ error: 'Deprecated - use Accounts tab instead' }, 410);
     }
 
     // Admin: system info
