@@ -91,6 +91,7 @@ async function getAccessToken(env) {
 
 function detectCat(name, folder) {
   if (folder && /^[A-Z]+-\d{3,4}$/.test(folder)) return 'jav';
+  if (/^beejin/i.test(name)) return 'jav';
   if (/[Ss]\d{2}[Ee]\d{2}/.test(name)) return 'series';
   return 'movie';
 }
