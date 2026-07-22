@@ -3,6 +3,7 @@
 
 import os, json, re, threading, time, sys
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from googleapiclient.errors import HttpError
 from datetime import datetime
@@ -20,6 +21,7 @@ DRIVE_FOLDER_ID = os.environ['DRIVE_FOLDER_ID']
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 VIDEO_EXT = {'.mp4','.mkv','.avi','.webm','.mov','.wmv','.flv','.m4v','.ts','.m2ts'}
 MIN_SIZE = 50 * 1024 * 1024
+MAX_PARALLEL = 3
 WATCH_DIR = Path(__file__).parent.parent.resolve()
 CACHE_FILE = WATCH_DIR / '.upload_cache.json'
 STATUS_FILE = WATCH_DIR / '.upload_status.json'
@@ -83,98 +85,113 @@ def find_or_create_folder(service, name, parent_id):
 
 
 # ── Upload Worker ──
-def upload_worker():
-    service = _get_drive()
-    cache = json.loads(CACHE_FILE.read_text()) if CACHE_FILE.exists() else {}
+_queue_counter = 0
+_queue_lock = threading.Lock()
 
+def _upload_one(item):
+    """Upload single file — runs in thread pool."""
+    abs_path = str(WATCH_DIR / item['rel_path'])
+    if not os.path.isfile(abs_path):
+        return {'item': item, 'status': 'failed', 'error': 'File not found'}
+
+    # Each thread gets own Drive service
+    service = _get_drive()
+    item['status'] = 'uploading'
+
+    try:
+        folder_name = Path(abs_path).parent.name
+        if Path(abs_path).parent.resolve() == WATCH_DIR:
+            folder_name = ''
+        target = DRIVE_FOLDER_ID
+        if folder_name:
+            target = find_or_create_folder(service, folder_name, DRIVE_FOLDER_ID)
+
+        file_size = os.path.getsize(abs_path)
+        media = MediaFileUpload(abs_path, mimetype='application/octet-stream', resumable=True, chunksize=10*1024*1024)
+        meta = {'name': os.path.basename(abs_path), 'parents': [target]}
+        request = service.files().create(body=meta, media_body=media, fields='id')
+
+        response = None
+        t0 = time.time()
+        while response is None and state['running']:
+            result = request.next_chunk(num_retries=3)
+            if isinstance(result, tuple) and len(result) == 2:
+                status, resp = result
+                if status and hasattr(status, 'resumable_progress'):
+                    pct = int(status.resumable_progress / file_size * 100)
+                    elapsed = time.time() - t0
+                    speed = (status.resumable_progress / (1024*1024)) / elapsed if elapsed > 0 else 0
+                    item['progress_pct'] = pct
+                    item['speed_mbps'] = round(speed, 1)
+                    item['elapsed_s'] = int(elapsed)
+                    item['uploaded_mb'] = round(status.resumable_progress / (1024*1024), 1)
+                if resp:
+                    response = resp
+            elif result is not None:
+                response = result
+
+        if not state['running']:
+            return {'item': item, 'status': 'paused'}
+
+        file_id = response['id']
+        drive_execute(service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}, fields='id'))
+        return {'item': item, 'status': 'done', 'file_id': file_id}
+    except Exception as e:
+        return {'item': item, 'status': 'failed', 'error': str(e)}
+
+
+def upload_worker():
     with _state_lock:
         state['running'] = True
         state['started'] = datetime.now().isoformat()
 
-    for item in state['queue']:
-        if not state['running']:
-            break
+    cache = json.loads(CACHE_FILE.read_text()) if CACHE_FILE.exists() else {}
+    queue = state['queue']
+    idx = 0
 
-        abs_path = str(WATCH_DIR / item['rel_path'])
-        if not os.path.isfile(abs_path):
-            item['status'] = 'failed'
-            item['error'] = 'File not found'
-            continue
+    with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as executor:
+        while idx < len(queue) and state['running']:
+            batch = []
+            with _queue_lock:
+                while idx < len(queue) and len(batch) < MAX_PARALLEL:
+                    if queue[idx]['status'] not in ('done', 'failed'):
+                        batch.append(queue[idx])
+                    idx += 1
 
-        item['status'] = 'uploading'
-        with _state_lock:
-            state['current'] = item
+            if not batch:
+                break
 
-        try:
-            folder_name = Path(abs_path).parent.name
-            if Path(abs_path).parent.resolve() == WATCH_DIR:
-                folder_name = ''
-            target = DRIVE_FOLDER_ID
-            if folder_name:
-                target = find_or_create_folder(service, folder_name, DRIVE_FOLDER_ID)
+            for item in batch:
+                item['status'] = 'uploading'
 
-            file_size = os.path.getsize(abs_path)
-            media = MediaFileUpload(abs_path, mimetype='application/octet-stream', resumable=True, chunksize=10*1024*1024)
-            meta = {'name': os.path.basename(abs_path), 'parents': [target]}
-            request = service.files().create(body=meta, media_body=media, fields='id')
+            futures = {executor.submit(_upload_one, item): item for item in batch}
 
-            response = None
-            last_pct = 0
-            t0 = time.time()
+            for future in as_completed(futures):
+                result = future.result()
+                item = result['item']
+                if result['status'] == 'done':
+                    item['status'] = 'done'
+                    item['file_id'] = result['file_id']
+                    cache[item['rel_path']] = result['file_id']
+                    CACHE_FILE.write_text(json.dumps(cache, indent=2))
+                    with _state_lock:
+                        state['completed'].append({
+                            'name': item['name'], 'file_id': result['file_id'],
+                            'size_mb': item['size_mb'],
+                        })
+                        state['uploaded_mb'] += item['size_mb']
+                elif result['status'] == 'failed':
+                    item['status'] = 'failed'
+                    item['error'] = result.get('error', 'Unknown')
+                    with _state_lock:
+                        state['failed'].append({'name': item['name'], 'error': item['error']})
+                elif result['status'] == 'paused':
+                    item['status'] = 'paused'
 
-            while response is None and state['running']:
-                result = request.next_chunk(num_retries=3)
-                if isinstance(result, tuple) and len(result) == 2:
-                    status, resp = result
-                    if status and hasattr(status, 'resumable_progress'):
-                        pct = int(status.resumable_progress / file_size * 100)
-                        elapsed = time.time() - t0
-                        speed = (status.resumable_progress / (1024*1024)) / elapsed if elapsed > 0 else 0
-                        with _state_lock:
-                            s = state['current']
-                            if s:
-                                s['progress_pct'] = pct
-                                s['speed_mbps'] = round(speed, 1)
-                                s['elapsed_s'] = int(elapsed)
-                                s['uploaded_mb'] = round(status.resumable_progress / (1024*1024), 1)
-                    if resp:
-                        response = resp
-                elif result is not None:
-                    response = result
-
-            if not state['running']:
-                item['status'] = 'paused'
                 save_state()
-                return
-
-            file_id = response['id']
-            drive_execute(service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}, fields='id'))
-
-            cache[item['rel_path']] = file_id
-            CACHE_FILE.write_text(json.dumps(cache, indent=2))
-
-            item['status'] = 'done'
-            item['file_id'] = file_id
-            with _state_lock:
-                state['completed'].append({
-                    'name': item['name'], 'file_id': file_id,
-                    'size_mb': item['size_mb'],
-                })
-                state['uploaded_mb'] += item['size_mb']
-                state['current'] = None
-            save_state()
-
-        except Exception as e:
-            item['status'] = 'failed'
-            item['error'] = str(e)
-            with _state_lock:
-                state['failed'].append({'name': item['name'], 'error': str(e)})
-                state['current'] = None
-            save_state()
 
     with _state_lock:
         state['running'] = False
-        state['current'] = None
     save_state()
 
 
@@ -204,6 +221,8 @@ def api_status():
     with _state_lock:
         s = dict(state)
         s.pop('_cond', None)
+        # Add active uploads list for multi-thread display
+        s['active'] = [q for q in s.get('queue', []) if q.get('status') == 'uploading']
     return jsonify(s)
 
 

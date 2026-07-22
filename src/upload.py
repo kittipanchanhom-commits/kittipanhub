@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Upload torrent videos to Google Drive with resumable upload + progress."""
 
-import os, json, argparse, time
+import os, json, argparse, time, threading
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from googleapiclient.errors import HttpError
 
@@ -17,6 +18,7 @@ DRIVE_FOLDER_ID = os.environ['DRIVE_FOLDER_ID']
 VIDEO_EXTENSIONS = {'.mp4', '.mkv', '.avi', '.webm', '.mov', '.wmv', '.flv', '.m4v', '.ts', '.m2ts'}
 MIN_SIZE_MB = 50
 MIN_SIZE_BYTES = MIN_SIZE_MB * 1024 * 1024
+MAX_PARALLEL = 3
 
 
 def get_drive_service():
@@ -170,50 +172,59 @@ def main():
             print(f'  {folder + "/" if folder else ""}{f.name}  ({f.stat().st_size / (1024**2):.0f} MB)')
         return
 
-    # Upload
+    # Upload — parallel
+    cache_lock = threading.Lock()
+    pending = []
+
     for i, (file_path, folder_name) in enumerate(videos):
         cache_key = str(file_path.relative_to(base_dir))
-
-        # 1) Check local cache
         if cache_key in cache:
-            cached_id = cache[cache_key]
             try:
-                drive_execute(service.files().get(fileId=cached_id, fields='id'))
+                drive_execute(service.files().get(fileId=cache[cache_key], fields='id'))
                 print(f'[{i+1}/{len(videos)}] SKIP (cached) {file_path.name}')
                 continue
             except Exception:
-                del cache[cache_key]
+                with cache_lock:
+                    del cache[cache_key]
 
-        # 2) Find/create target Drive subfolder
         target_folder = DRIVE_FOLDER_ID
         if folder_name:
             target_folder = find_or_create_folder(service, folder_name, DRIVE_FOLDER_ID)
 
-        # 3) Check if file already in Drive by name
         existing = file_exists_in_drive(service, file_path.name, target_folder)
         if existing:
-            cache[cache_key] = existing['id']
-            cache_file.write_text(json.dumps(cache, indent=2))
+            with cache_lock:
+                cache[cache_key] = existing['id']
+                cache_file.write_text(json.dumps(cache, indent=2))
             print(f'[{i+1}/{len(videos)}] SKIP (Drive) {file_path.name}')
             continue
 
-        # 4) Upload
-        size_mb = file_path.stat().st_size / (1024 * 1024)
-        msg = f'[{i+1}/{len(videos)}] UPLOAD {file_path.name} ({size_mb:.0f} MB)'
-        print(msg)
-        print('-' * min(len(msg), 80))
+        pending.append((file_path, target_folder, cache_key, i))
 
+    print(f'Uploading {len(pending)} files ({MAX_PARALLEL} parallel)')
+
+    def _do_upload(fp, tf, ck, idx):
+        svc = get_drive_service()  # each thread gets own service
+        size_mb = fp.stat().st_size / (1024 * 1024)
+        msg = f'[{idx+1}/{len(videos)}] UPLOAD {fp.name} ({size_mb:.0f} MB)'
+        print(msg)
         try:
-            file_id = upload_file(service, str(file_path), target_folder)
-            cache[cache_key] = file_id
-            cache_file.write_text(json.dumps(cache, indent=2))
-            print()
-        except KeyboardInterrupt:
-            print('\nInterrupted. Progress saved.')
-            break
+            fid = upload_file(svc, str(fp), tf)
+            with cache_lock:
+                cache[ck] = fid
+                cache_file.write_text(json.dumps(cache, indent=2))
+            return True
         except Exception as e:
-            print(f'\n  ERROR: {e}')
-            print('  Skipping this file. Continue? (press Ctrl+C to stop)')
+            print(f'  ERROR: {fp.name}: {e}')
+            return False
+
+    uploaded = 0
+    with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as executor:
+        futures = {executor.submit(_do_upload, fp, tf, ck, idx): (fp, ck) for fp, tf, ck, idx in pending}
+        for future in as_completed(futures):
+            if future.result():
+                uploaded += 1
+            print(f'  Progress: {uploaded}/{len(pending)} completed')
 
     print(f'\nDone! {len(cache)} files tracked in {cache_file.name}')
 
